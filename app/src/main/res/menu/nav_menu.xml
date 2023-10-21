@@ -1,0 +1,33 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_edit_db"
+        android:title="Edit Card Records" />
+
+    <item
+        android:id="@+id/nav_admin_activity"
+        android:title="Import Export .CSV" />
+
+    <item
+        android:id="@+id/nav_getai_activity"
+        android:title="Import AI Cards" />
+
+    <item
+        android:id="@+id/nav_editai_activity"
+        android:title="Edit imported AI Records" />
+
+    <item
+        android:id="@+id/user_registration"
+        android:title="User Registration" />
+
+    <item
+        android:id="@+id/nav_user_admin"
+        android:title="User Admin" />
+
+    <item
+        android:id="@+id/nav_card_image"
+        android:title="Get Card Image" />
+
+    <!-- ... possibly other items ... -->
+
+</menu>

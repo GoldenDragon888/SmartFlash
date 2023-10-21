@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ImageView
+        android:layout_gravity="start"
+        android:id="@id/textHeader"
+        android:layout_width="fill_parent"
+        android:layout_height="64.0dip"
+        android:layout_marginLeft="0.0dip"
+        android:src="@drawable/flashrocketimage"
+        android:scaleType="fitCenter"
+        app:layout_constraintBottom_toTopOf="@+id/editFields"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+    <LinearLayout
+        android:orientation="vertical"
+        android:id="@+id/editFields"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="0.0dip"
+        app:layout_constraintTop_toBottomOf="@id/textHeader"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent">
+        <androidx.cardview.widget.CardView
+            android:layout_width="fill_parent"
+            android:layout_height="36.0dip"
+            android:layout_margin="2.0dip"
+            android:layout_marginTop="16.0dip"
+            android:layout_weight="3.0"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="10.0dip"
+            app:cardElevation="5.0dip">
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+                <EditText
+                    android:textSize="20.0sp"
+                    android:gravity="center"
+                    android:id="@+id/editTextCategory"
+                    android:layout_width="fill_parent"
+                    android:layout_height="40.0dip"
+                    android:hint="New Category"
+                    android:textColorHint="@android:color/black"
+                    android:lines="2"
+                    android:inputType="textMultiLine"
+                    app:autoSizeMaxTextSize="24.0sp"
+                    app:autoSizeMinTextSize="12.0sp"
+                    app:autoSizeStepGranularity="2.0sp"
+                    app:autoSizeTextType="uniform" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+        <androidx.cardview.widget.CardView
+            android:layout_width="fill_parent"
+            android:layout_height="36.0dip"
+            android:layout_margin="2.0dip"
+            android:layout_marginTop="16.0dip"
+            android:layout_weight="3.0"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="10.0dip"
+            app:cardElevation="5.0dip">
+            <FrameLayout android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+                <EditText
+                    android:textSize="20.0sp"
+                    android:gravity="center"
+                    android:id="@+id/editTextSubcat"
+                    android:layout_width="fill_parent"
+                    android:layout_height="40.0dip"
+                    android:hint="New Subcat"
+                    android:textColorHint="@android:color/black"
+                    android:lines="2"
+                    android:inputType="textMultiLine"
+                    app:autoSizeMaxTextSize="24.0sp"
+                    app:autoSizeMinTextSize="12.0sp"
+                    app:autoSizeStepGranularity="2.0sp"
+                    app:autoSizeTextType="uniform" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+        <androidx.cardview.widget.CardView
+            android:layout_width="fill_parent"
+            android:layout_height="36.0dip"
+            android:layout_margin="2.0dip"
+            android:layout_marginTop="16.0dip"
+            android:layout_weight="3.0"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="10.0dip"
+            app:cardElevation="5.0dip">
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+                <EditText
+                    android:textSize="20.0sp"
+                    android:gravity="center"
+                    android:id="@+id/editTextItem"
+                    android:layout_width="fill_parent"
+                    android:layout_height="40.0dip"
+                    android:hint="Item"
+                    android:textColorHint="@android:color/black"
+                    android:lines="2"
+                    android:inputType="textMultiLine"
+                    app:autoSizeMaxTextSize="24.0sp"
+                    app:autoSizeMinTextSize="12.0sp"
+                    app:autoSizeStepGranularity="2.0sp"
+                    app:autoSizeTextType="uniform" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="fill_parent"
+            android:layout_height="65.0dip"
+            android:layout_margin="2.0dip"
+            android:layout_weight="3.0"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="10.0dip"
+            app:cardElevation="5.0dip">
+
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+
+                <TextView
+                    android:gravity="center"
+                    android:textAlignment="center"
+                    android:paddingTop="8dp"
+                    android:paddingLeft="8dp"
+                    android:paddingRight="8dp"
+                    android:id="@+id/editTextDescription"
+                    android:layout_width="fill_parent"
+                    android:layout_height="65.0dip"
+                    android:text="Description"
+                    android:textColor="@android:color/black"
+                    android:lines="6"
+                    app:autoSizeMaxTextSize="24.0sp"
+                    app:autoSizeMinTextSize="12.0sp"
+                    app:autoSizeStepGranularity="2.0sp"
+                    app:autoSizeTextType="uniform" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="fill_parent"
+            android:layout_height="145.0dip"
+            android:layout_margin="2.0dip"
+            android:layout_weight="3.0"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="10.0dip"
+            app:cardElevation="5.0dip">
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+                <TextView
+                    android:gravity="center"
+                    android:textAlignment="center"
+                    android:paddingTop="8dp"
+                    android:paddingLeft="8dp"
+                    android:paddingRight="8dp"
+                    android:id="@+id/editTextDetails"
+                    android:layout_width="fill_parent"
+                    android:layout_height="140.0dip"
+                    android:text="Details"
+                    android:textColor="@android:color/black"
+                    android:lines="10"
+                    app:autoSizeMaxTextSize="24.0sp"
+                    app:autoSizeMinTextSize="11.0sp"
+                    app:autoSizeStepGranularity="2.0sp"
+                    app:autoSizeTextType="uniform" />
+
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardView"
+            android:layout_width="fill_parent"
+            android:layout_height="40.0dip"
+            android:layout_margin="2.0dip"
+            android:layout_marginTop="16.0dip"
+            android:layout_weight="3.0"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="10.0dip"
+            app:cardElevation="5.0dip">
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+                <Spinner
+                    android:id="@+id/spinnerDifficulty"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:layout_gravity="center_vertical"
+
+                    android:padding="0dp"/>
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+    <ImageView
+        android:id="@+id/associated_image"
+        android:background="?android:selectableItemBackground"
+        android:focusable="true"
+        android:clickable="true"
+        android:layout_width="wrap_content"
+        android:layout_height="150.0dip"
+        android:src="@drawable/smartflashnoimage"
+        android:scaleType="fitCenter"
+        android:layout_marginStart="16.0dip"
+        android:layout_marginEnd="16.0dip"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/editFields" />
+    <LinearLayout
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:id="@+id/catButtons"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="-5.0dip"
+        app:layout_constraintTop_toBottomOf="@id/associated_image"
+        app:layout_constraintBottom_toTopOf="@id/deletecatButtons"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent">
+        <Button
+            android:id="@+id/buttonCategory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Category"
+            android:backgroundTint="@color/flash_blue" />
+        <Button
+            android:id="@+id/buttonSubcat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Subcat"
+            android:backgroundTint="@color/flash_blue" />
+    </LinearLayout>
+    <LinearLayout
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:id="@+id/deletecatButtons"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="-5.0dip"
+        app:layout_constraintTop_toBottomOf="@+id/catButtons"
+        app:layout_constraintBottom_toTopOf="@id/layoutButtons"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent">
+        <Button android:id="@+id/buttonDeleteCategory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Delete entire Category"
+            android:backgroundTint="@color/dark_red" />
+        <Button
+            android:id="@+id/buttonDeleteSubcat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Delete entire Subcat"
+            android:backgroundTint="@color/dark_red" />
+    </LinearLayout>
+    <LinearLayout
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:id="@+id/layoutButtons"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="-15.0dip"
+        app:layout_constraintTop_toBottomOf="@id/deletecatButtons"
+        app:layout_constraintBottom_toTopOf="@id/navButtons"
+
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent">
+        <Button
+            android:id="@+id/buttonDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Delete"
+            android:backgroundTint="@color/dark_red" />
+        <Button android:id="@+id/buttonNew"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New"
+            android:backgroundTint="@color/dark_green" />
+        <Button android:id="@+id/buttonUpdate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Update"
+            android:backgroundTint="@color/blue" />
+    </LinearLayout>
+    <LinearLayout
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:id="@+id/navButtons"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutButtons"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent">
+        <Button android:id="@+id/buttonBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Back" />
+        <Button android:id="@+id/buttonHome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8.0dip"
+            android:text="Home"
+            android:backgroundTint="@color/orange" />
+        <Button
+            android:id="@+id/buttonNext"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Next" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/frameOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B3000000"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/editDescriptionOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="8dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="5.0dip"
+            android:background="@drawable/border_drawable">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <EditText
+                    android:id="@+id/editDescriptionContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Edit description here"
+                    android:inputType="textMultiLine"
+                    android:padding="8dp"
+                    android:textSize="18sp" />
+
+                <Button
+                    android:id="@+id/saveDescriptionEditButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_margin="8dp"
+                    android:text="Save" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/frameOverlayDetails"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B3000000"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/editDetailsOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="8dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="5.0dip"
+            android:background="@drawable/border_drawable">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <EditText
+                    android:id="@+id/editDetailsContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Edit details here"
+                    android:inputType="textMultiLine"
+                    android:padding="8dp"
+                    android:textSize="18sp" />
+
+                <Button
+                    android:id="@+id/saveDetailsEditButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_margin="8dp"
+                    android:text="Save" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

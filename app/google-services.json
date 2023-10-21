@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "235896629538",
+    "project_id": "platinum-scout-394120",
+    "storage_bucket": "platinum-scout-394120.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:235896629538:android:20fc1e47dc8a79bbe11d7b",
+        "android_client_info": {
+          "package_name": "au.smartflash.smartflash"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "235896629538-3vledt92ds6cudk1f28sq3d41jkck5oc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-oMicEpZ6q0YJToTk1i6FGL49oyOTtD8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "235896629538-3vledt92ds6cudk1f28sq3d41jkck5oc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
