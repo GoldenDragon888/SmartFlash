@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    android:background="@drawable/edit_text_border"
+    android:padding="8.0dip"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView
+        android:textSize="20.0dip"
+        android:id="@id/tvCategory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true" />
+    <View
+        android:id="@id/separator"
+        android:background="@color/flash_blue"
+        android:layout_width="1.0dip"
+        android:layout_height="20.0dip"
+        android:layout_toRightOf="@id/tvCategory"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="8.0dip"
+        android:layout_marginEnd="8.0dip" />
+    <TextView
+        android:textSize="20.0dip"
+        android:id="@id/tvSubcategory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/separator"
+        android:layout_centerVertical="true" />
+    <TextView
+        android:textSize="20.0dip"
+        android:id="@id/tvCardCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_toLeftOf="@id/selectionCircle"
+        android:layout_centerVertical="true"
+        android:layout_marginEnd="20.0dip" />
+    <View
+        android:id="@id/selectionCircle"
+        android:background="@drawable/your_circle_drawable"
+        android:layout_width="20.0dip"
+        android:layout_height="20.0dip"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true" />
+</RelativeLayout>

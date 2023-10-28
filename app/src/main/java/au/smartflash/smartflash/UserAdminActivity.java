@@ -1,8 +1,11 @@
 package au.smartflash.smartflash;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -28,7 +31,9 @@ public class UserAdminActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private GoogleSignInClient googleSignInClient;
     private EditText etUsername, etEmail, etPassword;
-
+    private static final String PREFS_USER_NAME = "UserPrefs";
+    private static final String PREF_EMAIL = "Email";
+    private static final String PREF_PASSWORD = "Password";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,11 +44,42 @@ public class UserAdminActivity extends AppCompatActivity {
         handleExistingUser();
         setupButtonClickListeners();
     }
-
+    private void saveCredentials(String email, String password) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_USER_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(PREF_EMAIL, email);
+        editor.putString(PREF_PASSWORD, password);
+        editor.apply();
+    }
     private void initializeViews() {
         etUsername = findViewById(R.id.et_username); // Changed the resource IDs to more standard naming
         etEmail = findViewById(R.id.et_email);
         etPassword = findViewById(R.id.et_password);
+        findViewById(R.id.btn_reregister).setOnClickListener(v -> signInWithEmail());
+        Button homeButton = findViewById(R.id.home_button);
+        homeButton.setOnClickListener(v -> finish());
+
+    }
+    private void signInWithEmail() {
+        String email = etEmail.getText().toString().trim();
+        String password = etPassword.getText().toString().trim();
+
+        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
+            showSnackbar("Email and password must not be empty.");
+            return;
+        }
+
+        auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        saveCredentials(email, password);
+                        showSnackbar("Sign-in successful!");
+                        // Navigate to another activity if required or handle the successful sign-in as needed
+                    } else {
+                        showSnackbar("Authentication failed. Please check your email and password.");
+                    }
+                });
+
     }
 
     private void setupAuth() {
@@ -89,11 +125,16 @@ public class UserAdminActivity extends AppCompatActivity {
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
         auth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
-                    if (!task.isSuccessful()) {
+                    if (task.isSuccessful()) {
+                        showSnackbar("Google sign-in successful!");
+                        // Navigate to another activity if required or handle the successful sign-in as needed
+                    } else {
                         // Handle the error
+                        showSnackbar("Google sign-in failed.");
                     }
                 });
     }
+
 
     private void handleFacebookAccessToken(AccessToken token) {
         AuthCredential credential = FacebookAuthProvider.getCredential(token.getToken());

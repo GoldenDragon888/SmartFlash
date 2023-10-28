@@ -9,6 +9,7 @@
     <color name="flash_blue">#ff163451</color>
     <color name="blue">#ff005aff</color>
     <color name="orange">#ffff6500</color>
+    <color name="gray">#808080</color>
 
 
 </resources>

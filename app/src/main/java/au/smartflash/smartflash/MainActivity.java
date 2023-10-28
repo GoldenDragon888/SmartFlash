@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 import android.view.MenuItem;
@@ -193,6 +194,10 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     private static final String DATABASE_INITIALIZED = "database_initialized";
     private static final String DATABASE_NAME = "SMARTFLASHDB.sqlite";
     private LiveData<List<String>> uniqueCategories;
+    private FirebaseAuth auth;
+    private static final String PREFS_USER_NAME = "UserPrefs";
+    private static final String PREF_EMAIL = "EmailKey";
+    private static final String PREF_PASSWORD = "PasswordKey";
 
 
     @Override
@@ -200,6 +205,7 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        auth = FirebaseAuth.getInstance();
 
         initializeDatabase();
 
@@ -224,23 +230,31 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         toggle.getDrawerArrowDrawable().setColor(getResources().getColor(android.R.color.white));
         toggle.syncState();
 
-        setupSubcategoriesMap();
-        //initDatabase();
-        initViews();
-        initializeUIComponents();
+        // Check if user is signed in (non-null)
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null) {
+            // No user is signed in, redirect to UserAdminActivity
+            startActivity(new Intent(this, UserAdminActivity.class));
+            finish();  // Optional: Close the MainActivity
+        } else {
+            setupSubcategoriesMap();
+            //initDatabase();
+            initViews();
+            initializeUIComponents();
 
-        setOnClickListeners();
-        initializeDataObservers();
-        loadMappingsFromDatabase();
-        loadWordsIfNeeded();
-        retrievePreferences();
-        updateUI();
-        updateButtonStates(difficulty);
-        // Check and request storage permissions
-        if (!checkStoragePermissions()) {
-            requestForStoragePermissions();
+            setOnClickListeners();
+            initializeDataObservers();
+            loadMappingsFromDatabase();
+            loadWordsIfNeeded();
+            retrievePreferences();
+            updateUI();
+            updateButtonStates(difficulty);
+            // Check and request storage permissions
+            if (!checkStoragePermissions()) {
+                requestForStoragePermissions();
+            }
+            showNextFlashcard();
         }
-        showNextFlashcard();
     }
     private static final int REQUEST_STORAGE_PERMISSION = 1000;
     private static final int STORAGE_PERMISSION_CODE = 23;
@@ -1452,13 +1466,15 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             startActivity(intent);
             // handle action for 'Import Export .CSV'
         } else if (id == R.id.nav_getai_activity) {
-            // handle action for 'Import AI Cards'
+            Intent intent = new Intent(this, GetAICardsActivity.class);
+            startActivity(intent);
         } else if (id == R.id.nav_editai_activity) {
             // handle action for 'Edit AI Cards'
         } else if (id == R.id.user_registration) {
             // handle action for 'User Registration'
         } else if (id == R.id.nav_user_admin) {
-            // handle action for 'User Admin'
+            Intent intent = new Intent(this, UserAdminActivity.class);
+            startActivity(intent);
         } else if (id == R.id.nav_card_image) {
             Intent intent = new Intent(this, ChooseCardFaceActivity.class);
             startActivity(intent);
@@ -1586,8 +1602,58 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
 
         return difficultyButtonMap.get(difficulty);
     }
+    private void checkAuthenticationStatus() {
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser != null) {
+            // User is already signed in, navigate to main app screen
+            navigateToMainAppScreen();
+        } else {
+            // Try auto login or navigate to registration
+            tryAutoLoginOrRegister();
+        }
+    }
+    private Pair<String, String> getSavedCredentials() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_USER_NAME, MODE_PRIVATE);
+        String email = prefs.getString(PREF_EMAIL, "");
+        String password = prefs.getString(PREF_PASSWORD, "");
+        return new Pair<>(email, password);
+    }
 
+    private void tryAutoLoginOrRegister() {
+        Pair<String, String> credentials = getSavedCredentials();
+        String savedEmail = credentials.first;
+        String savedPassword = credentials.second;
 
+        if (TextUtils.isEmpty(savedEmail) || TextUtils.isEmpty(savedPassword)) {
+            navigateToRegistrationScreen();
+            return;
+        }
+
+        // Try to sign in with stored credentials
+        auth.signInWithEmailAndPassword(savedEmail, savedPassword)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // Auto login successful, navigate to main app screen
+                        navigateToMainAppScreen();
+                    } else {
+                        // Auto login failed, navigate to registration screen
+                        navigateToRegistrationScreen();
+                    }
+                });
+    }
+
+    private void navigateToMainAppScreen() {
+        // Navigation code to main app screen
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
+        finish();
+    }
+    private void navigateToRegistrationScreen() {
+        // Navigation code to registration screen
+        Intent intent = new Intent(this, RegisterActivity.class);
+        startActivity(intent);
+        finish();
+    }
 
     public static class BooleanHolder {
         public boolean value;

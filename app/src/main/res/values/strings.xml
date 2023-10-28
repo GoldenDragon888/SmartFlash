@@ -17,6 +17,17 @@
         <item>P2</item>
         <item>P3</item>
     </string-array>
+    <string-array name="card_numbers">
+        <item>How many?</item>
+        <item>1</item>
+        <item>2</item>
+        <item>5</item>
+        <item>10</item>
+        <item>20</item>
+        <item>30</item>
+    </string-array>
+    <string name="default_web_client_id">235896629538-3vledt92ds6cudk1f28sq3d41jkck5oc.apps.googleusercontent.com</string>
+    <string name="prompt_num_cards">How many?</string>
 
     <string name="lorem_ipsum">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam in scelerisque sem. Mauris

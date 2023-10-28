@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout 
+android:background="@android:color/holo_blue_light" 
+android:layout_width="fill_parent" 
+android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ImageView :layout_gravity="start" 
+android:id="@id/textHeader" 
+android:layout_width="fill_parent" 
+android:layout_height="64.0dip" 
+android:layout_marginLeft="0.0dip" 
+android:src="@drawable/flashrocketimage" 
+android:scaleType="fitCenter"
+        app:layout_constraintBottom_toTopOf="@+id/editgetAIFields"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+    <LinearLayout 
+            android:orientation="vertical"
+            android:id="@+id/editgetAIFields"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="0.0dip"
+        app:layout_constraintTop_toBottomOf="@id/textHeader">
+        <androidx.cardview.widget.CardView 
+            android:layout_width="fill_parent"
+            android:layout_height="60.0dip"
+            android:layout_margin="2.0dip"
+            android:layout_marginTop="16.0dip"
+            android:layout_weight="3.0"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="10.0dip"
+            app:cardElevation="5.0dip">
+            <FrameLayout 
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+                <EditText 
+                android:textSize="24.0sp"
+                android:gravity="center"
+                android:id="@+id/editgetAICategory"
+                android:layout_width="fill_parent"
+                android:layout_height="64.0dip"
+                android:hint="Choose Category"
+                android:lines="2"
+                android:inputType="textMultiLine"
+                    app:autoSizeMaxTextSize="24.0sp"
+                    app:autoSizeMinTextSize="12.0sp"
+                    app:autoSizeStepGranularity="2.0sp"
+                    app:autoSizeTextType="uniform" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+        <androidx.cardview.widget.CardView 
+android:id="@+id/cardToLanguage"
+android:layout_width="fill_parent" 
+android:layout_height="60.0dip" 
+android:layout_margin="2.0dip" 
+android:layout_marginTop="16.0dip" 
+android:layout_weight="3.0" app:cardBackgroundColor="@color/white" app:cardCornerRadius="10.0dip" app:cardElevation="5.0dip">
+            <FrameLayout 
+android:layout_width="fill_parent" 
+android:layout_height="fill_parent">
+                <EditText 
+android:enabled="false" 
+android:textSize="24.0sp" 
+android:gravity="center" 
+android:id="@+id/editToLanguage"
+android:layout_width="fill_parent" 
+android:layout_height="64.0dip" 
+android:hint="To Language" 
+android:inputType="text" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+        <androidx.cardview.widget.CardView 
+                android:layout_width="fill_parent"
+                android:layout_height="60.0dip"
+                android:layout_margin="2.0dip"
+                android:layout_marginTop="16.0dip"
+                android:layout_weight="3.0" app:cardBackgroundColor="@color/white" app:cardCornerRadius="10.0dip" app:cardElevation="5.0dip">
+            <FrameLayout 
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+                <EditText 
+                android:textSize="24.0sp"
+                android:gravity="center"
+                android:id="@+id/editgetAISubcat"
+                android:layout_width="fill_parent"
+                android:layout_height="64.0dip"
+                android:hint="Choose Subcat"
+                android:lines="2"
+                android:inputType="textMultiLine" app:autoSizeMaxTextSize="24.0sp" app:autoSizeMinTextSize="12.0sp" app:autoSizeStepGranularity="2.0sp" app:autoSizeTextType="uniform" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+        <LinearLayout 
+                android:orientation="vertical"
+                android:paddingTop="16.0dip"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content">
+            <Button 
+                android:textColor="@android:color/white"
+                android:id="@+id/informationButton"
+                android:layout_width="wrap_content"
+                android:layout_height="50.0dip"
+                android:text="Information"
+android:backgroundTint="@color/dark_red" />
+            <Button 
+                android:textColor="@android:color/white"
+                android:id="@+id/languageButton"
+                android:layout_width="wrap_content"
+                android:layout_height="50.0dip"
+                android:text="Language"
+android:backgroundTint="@color/dark_red" />
+            <androidx.cardview.widget.CardView 
+                android:layout_gravity="end"
+                android:layout_width="150.0dip"
+                android:layout_height="wrap_content"
+                android:layout_margin="2.0dip"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="10.0dip"
+                app:cardElevation="5.0dip">
+                <Spinner 
+                android:textSize="24.0sp"
+                android:gravity="left"
+                android:layout_gravity="end"
+                android:id="@+id/spinnerNumCards"
+                android:layout_width="wrap_content"
+                android:layout_height="50.0dip"
+                android:entries="@array/card_numbers"
+                android:prompt="@string/prompt_num_cards" />
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+        <Button 
+android:textColor="@android:color/white" 
+android:gravity="center" 
+android:id="@+id/requestCardsButton"
+android:layout_width="wrap_content" 
+android:layout_height="wrap_content" 
+android:layout_marginTop="16.0dip" 
+android:text="Request Cards" 
+android:backgroundTint="@color/flash_blue" />
+        <Button 
+android:textColor="@android:color/white" 
+android:gravity="center" 
+android:id="@+id/fetchDataButton"
+android:layout_width="wrap_content" 
+android:layout_height="wrap_content" 
+android:layout_marginTop="16.0dip" 
+android:text="Fetch Card Database" 
+android:backgroundTint="@color/flash_blue" />
+    </LinearLayout>
+    <LinearLayout 
+android:gravity="center" 
+android:orientation="horizontal" 
+android:id="@+id/navgetAIButtons"
+android:layout_width="fill_parent" 
+android:layout_height="wrap_content" 
+android:layout_marginBottom="16.0dip" 
+android:backgroundTint="@color/white" app:layout_constraintBottom_toBottomOf="parent">
+        <Button 
+android:id="@+id/buttongetAIHome"
+android:layout_width="wrap_content" 
+android:layout_height="wrap_content" 
+android:layout_margin="8.0dip" 
+android:text="Home" 
+android:backgroundTint="@color/orange" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
