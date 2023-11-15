@@ -28,6 +28,10 @@
     </string-array>
     <string name="default_web_client_id">235896629538-3vledt92ds6cudk1f28sq3d41jkck5oc.apps.googleusercontent.com</string>
     <string name="prompt_num_cards">How many?</string>
+    <string name="original_category_hint">Choose Category</string>
+    <string name="original_subcategory_hint">Choose Subcategory</string>
+
+
 
     <string name="lorem_ipsum">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam in scelerisque sem. Mauris

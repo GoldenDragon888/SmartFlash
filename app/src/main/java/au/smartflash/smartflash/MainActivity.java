@@ -1470,7 +1470,10 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             startActivity(intent);
         } else if (id == R.id.nav_editai_activity) {
             // handle action for 'Edit AI Cards'
-        } else if (id == R.id.user_registration) {
+        } else if (id == R.id.nav_getpaipairs_activity) {
+            Intent intent = new Intent(this, CardPairListActivity.class);
+            startActivity(intent);
+        }else if (id == R.id.user_registration) {
             // handle action for 'User Registration'
         } else if (id == R.id.nav_user_admin) {
             Intent intent = new Intent(this, UserAdminActivity.class);
@@ -1508,6 +1511,7 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             }
         }
 
+        initializeDatabase(); //need to do this when return to the main card screen tio make sure that any new cards added are searchable
         setupImages();
         retrievePreferences();
         initializeDataObservers();

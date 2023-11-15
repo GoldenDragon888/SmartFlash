@@ -85,7 +85,7 @@ public class EditDBActivity extends AppCompatActivity {
     private String category;
     private String subcategory;
     private EditText editTextCategory, editTextSubcat, editTextItem, editTextDifficulty;
-    private Button buttonCategory, buttonSubcat, buttonDelete, buttonNew, buttonUpdate;
+    private Button buttonCategory, buttonSubcat, buttonDelete, buttonNew, buttonUpdate, buttonDeleteCategory, buttonDeleteSubcat;
     private WordDao wordDao;
     private List<Word> currentWordsList;  // Assuming the data is represented by the "Word" class.
     private int currentPosition = 0;
@@ -113,7 +113,13 @@ public class EditDBActivity extends AppCompatActivity {
         Log.d("FLAG", "IN EditDBActivity before Room");
         db = Room.databaseBuilder(getApplicationContext(), AppDatabase.class, "SMARTFLASHDB.sqlite").build();
         wordDao = db.wordDao();
-
+/*
+        wordDao.getAllWords().observe(this, newWords -> {
+            // Update UI with the list of words
+            // For example, if you have a RecyclerView adapter, call something like:
+            adapter.updateData(newWords);
+        });
+*/
         initializeDirectories();
         initializeUIElements();
     }
@@ -173,7 +179,8 @@ public class EditDBActivity extends AppCompatActivity {
         editDetailsContent = findViewById(R.id.editDetailsContent);
         editTextDetails = findViewById(R.id.editTextDetails);
         saveDetailsEditButton = findViewById(R.id.saveDetailsEditButton);
-
+        buttonDeleteCategory = findViewById(R.id.buttonDeleteCategory);
+        buttonDeleteSubcat = findViewById(R.id.buttonDeleteSubcat);
         editTextDetails.setFocusableInTouchMode(false);
 
         // Set listeners for Details EditText and Save button
@@ -197,6 +204,25 @@ public class EditDBActivity extends AppCompatActivity {
                 editTextDetails.setText(newContent);
             }
             frameOverlayDetails.setVisibility(View.GONE);
+        });
+
+        buttonDeleteCategory.setOnClickListener(v -> {
+            String category = editTextCategory.getText().toString();
+            if (!category.isEmpty()) {
+                deleteCategory(category);
+            } else {
+                Toast.makeText(this, "No category specified", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        buttonDeleteSubcat.setOnClickListener(v -> {
+            String category = editTextCategory.getText().toString();
+            String subcategory = editTextSubcat.getText().toString();
+            if (!category.isEmpty() && !subcategory.isEmpty()) {
+                deleteSubcategory(category, subcategory);
+            } else {
+                Toast.makeText(this, "No category or subcategory specified", Toast.LENGTH_SHORT).show();
+            }
         });
 
         Spinner spinnerDifficulty = findViewById(R.id.spinnerDifficulty);
@@ -239,15 +265,20 @@ public class EditDBActivity extends AppCompatActivity {
         buttonBack = findViewById(R.id.buttonBack);
         buttonHome = findViewById(R.id.buttonHome);
 
+        buttonHome.setOnClickListener(view -> {
+            Intent intent = new Intent(EditDBActivity.this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // This flag ensures that if MainActivity is already open, it will be brought to the front
+            startActivity(intent);
+            finish(); // Optionally, if you want to remove the current activity from the back stack
+        });
+
+
         buttonCategory = findViewById(R.id.buttonCategory);
         buttonSubcat = findViewById(R.id.buttonSubcat);
 
         imageView = findViewById(R.id.associated_image);
         associatedImage = findViewById(R.id.associated_image);
 
-
-        Button homeButton = findViewById(R.id.buttonHome);
-        homeButton.setOnClickListener(v -> finish());
 
         buttonCategory.setOnClickListener(view -> {
             AlertDialog.Builder builder = new AlertDialog.Builder(EditDBActivity.this);
@@ -441,18 +472,46 @@ public class EditDBActivity extends AppCompatActivity {
     }
 
     private void displayWord(Word word) {
+        // Check if the word object is null before proceeding
+        if (word == null) {
+            // Handle the case where word is null
+            Log.w("displayWord", "The provided Word object is null.");
+            // You could also clear the text fields or disable UI elements as appropriate
+            editTextCategory.setText("");
+            editTextSubcat.setText("");
+            editTextItem.setText("");
+            editTextDescription.setText("");
+            editTextDetails.setText("");
+            spinnerDifficulty.setSelection(0); // or whatever default value you want
+            // ... any additional handling
+            return;
+        }
+
+        // Continue as normal because word is not null
         currentWord = word; // This sets the class-level currentWord
 
-        editTextCategory.setText(currentWord.getCategory());
-        editTextSubcat.setText(currentWord.getSubcategory());
-        editTextItem.setText(currentWord.getItem());
-        editTextDescription.setText(currentWord.getDescription());
-        editTextDetails.setText(currentWord.getDetails());
-        String difficulty = currentWord.getDifficulty();
-        int index = ((ArrayAdapter<String>) spinnerDifficulty.getAdapter()).getPosition(difficulty);
-        spinnerDifficulty.setSelection(index);
+        editTextCategory.setText(safeString(currentWord.getCategory()));
+        editTextSubcat.setText(safeString(currentWord.getSubcategory()));
+        editTextItem.setText(safeString(currentWord.getItem()));
+        editTextDescription.setText(safeString(currentWord.getDescription()));
+        editTextDetails.setText(safeString(currentWord.getDetails()));
+
+        String difficulty = safeString(currentWord.getDifficulty());
+        if (!difficulty.isEmpty()) {
+            int index = ((ArrayAdapter<String>) spinnerDifficulty.getAdapter()).getPosition(difficulty);
+            spinnerDifficulty.setSelection(index);
+        } else {
+            spinnerDifficulty.setSelection(0); // Set to default or appropriate value
+        }
+
         loadImageForWord(currentWord);
     }
+
+    // Helper method to ensure strings are not null
+    private String safeString(String input) {
+        return input != null ? input : "";
+    }
+
 
     private void getCategoryData(String chosenCategory, Callback<Word> callback) {
         // Use your executor to fetch data off the main thread
@@ -609,14 +668,6 @@ public class EditDBActivity extends AppCompatActivity {
                 }
             });
         });
-        Button btnHome = findViewById(R.id.buttonHome);
-
-        btnHome.setOnClickListener(view -> {
-            Intent intent = new Intent(EditDBActivity.this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // This flag ensures that if MainActivity is already open, it will be brought to the front
-            startActivity(intent);
-            finish(); // Optionally, if you want to remove the current activity from the back stack
-        });
 
     }
 
@@ -636,6 +687,50 @@ public class EditDBActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    private void deleteCategory(String category) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Category")
+                .setMessage("Are you sure you want to delete the entire category '" + category + "'? If so, you will need to download it again.")
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.yes, (dialog, whichButton) -> {
+                    executor.execute(() -> {
+                        wordDao.deleteWordsByCategory(category);
+
+                        // You need to convert LiveData to List synchronously since we are already off the main thread.
+                        List<Word> updatedWords = wordDao.getAllWords().getValue(); // Make sure to call this after the deletion is done.
+                        runOnUiThread(() -> {
+                            Toast.makeText(EditDBActivity.this, "Category deleted successfully", Toast.LENGTH_SHORT).show();
+                            // TODO: Update your UI here if necessary.
+                            initializeUIElements();
+                            // The LiveData should be observed in the place where you are setting the adapter data.
+                        });
+                    });
+                })
+                .setNegativeButton(android.R.string.no, null).show();
+    }
+
+    private void deleteSubcategory(String category, String subcategory) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Subcategory")
+                .setMessage("Are you sure you want to delete the entire subcategory '" + subcategory + "' in category '" + category + "'? If so, you will need to download it again.")
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.yes, (dialog, whichButton) -> {
+                    executor.execute(() -> {
+                        wordDao.deleteWordsBySubcategory(category, subcategory);
+
+                        // Same here for LiveData to List conversion.
+                        List<Word> updatedWords = wordDao.getAllWords().getValue(); // Again, make sure to call this after the deletion.
+                        runOnUiThread(() -> {
+                            Toast.makeText(EditDBActivity.this, "Subcategory deleted successfully", Toast.LENGTH_SHORT).show();
+                            // TODO: Update your UI here if necessary.
+                            initializeUIElements();
+
+                            // The LiveData should be observed in the place where you are setting the adapter data.
+                        });
+                    });
+                })
+                .setNegativeButton(android.R.string.no, null).show();
     }
 
     @Override

@@ -20,13 +20,13 @@ public interface AICardDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(AICard... aiCards);
 
-    @Query("SELECT * FROM AICards WHERE username_ai = :username")
+    @Query("SELECT * FROM AICards WHERE Username = :username")
     List<AICard> getCardsByUsername(String username);
 
-    @Query("SELECT * FROM AICards WHERE date_updated_ai = :date")
+    @Query("SELECT * FROM AICards WHERE Date_updated = :date")
     List<AICard> getCardsByDate(String date);
 
-    @Query("SELECT * FROM AICards WHERE category_ai = :category")
+    @Query("SELECT * FROM AICards WHERE Category = :category")
     List<AICard> getCardsByCategory(String category);
 
     @Update

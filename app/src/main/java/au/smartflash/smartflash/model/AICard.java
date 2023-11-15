@@ -5,40 +5,45 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+import com.google.firebase.firestore.PropertyName;
+
 import java.io.Serializable;
 
 @Entity(tableName = "AICards")
 public class AICard implements Serializable {
 
     @PrimaryKey(autoGenerate = true)
-    private int id;
+    private Integer id;  // Changed to Integer to allow null values
 
-    @ColumnInfo(name = "username_ai")
+    @ColumnInfo(name = "Username")
     private String usernameAi;
 
-    @ColumnInfo(name = "category_ai")
+    @ColumnInfo(name = "Category")
     private String categoryAi;
 
-    @ColumnInfo(name = "to_language_ai")
+    @ColumnInfo(name = "To_language")
     private String toLanguageAi;
 
-    @ColumnInfo(name = "subcategory_ai")
+    @ColumnInfo(name = "Subcategory")
     private String subcategoryAi;
 
-    @ColumnInfo(name = "item_ai")
+    @ColumnInfo(name = "Item")
     private String itemAi;
 
-    @ColumnInfo(name = "description_ai")
+    @ColumnInfo(name = "Description")
     private String descriptionAi;
 
-    @ColumnInfo(name = "details_ai")
+    @ColumnInfo(name = "Details")
     private String detailsAi;
 
-    @ColumnInfo(name = "image_url_ai")
+    @ColumnInfo(name = "Image")
     private String imageUrlAi;
 
-    @ColumnInfo(name = "date_updated_ai")
+    @ColumnInfo(name = "Date_updated")
     private String dateUpdatedAi;
+
+    @Ignore // This field is not part of the database table
+    private boolean selected;
 
     // Full constructor
     public AICard(String usernameAi, String categoryAi, String toLanguageAi, String subcategoryAi, String itemAi,
@@ -52,19 +57,31 @@ public class AICard implements Serializable {
         this.detailsAi = detailsAi;
         this.imageUrlAi = imageUrlAi;
         this.dateUpdatedAi = dateUpdatedAi;
+        this.selected = false; // Initialize with default false
     }
 
     // Getters
-    public int getId() { return id; }
+    public Integer getId() { return id; }
+    @PropertyName("Username")
     public String getUsernameAi() { return usernameAi; }
+    @PropertyName("Category")
     public String getCategoryAi() { return categoryAi; }
+
     public String getToLanguageAi() { return toLanguageAi; }
+    @PropertyName("Subcategory")
     public String getSubcategoryAi() { return subcategoryAi; }
+    @PropertyName("Item")
     public String getItemAi() { return itemAi; }
+    @PropertyName("Description")
     public String getDescriptionAi() { return descriptionAi; }
+    @PropertyName("Details")
     public String getDetailsAi() { return detailsAi; }
+    @PropertyName("Image")
     public String getImageUrlAi() { return imageUrlAi; }
+    @PropertyName("Date_updated")
+
     public String getDateUpdatedAi() { return dateUpdatedAi; }
+    public boolean isSelected() { return selected; }
 
     // Setters
     public void setId(int id) { this.id = id; }
@@ -77,8 +94,9 @@ public class AICard implements Serializable {
     public void setDetailsAi(String detailsAi) { this.detailsAi = detailsAi; }
     public void setImageUrlAi(String imageUrlAi) { this.imageUrlAi = imageUrlAi; }
     public void setDateUpdatedAi(String dateUpdatedAi) { this.dateUpdatedAi = dateUpdatedAi; }
+    public void setSelected(boolean selected) { this.selected = selected; }
 
     // Empty constructor for Room
-    @Ignore
+
     public AICard() {}
 }

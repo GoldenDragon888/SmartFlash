@@ -32,6 +32,8 @@ public interface WordDao {
     long insert(Word word);
     //@Update
     //void update(Word word);
+    @Query("SELECT COUNT(*) FROM Cards WHERE Category = :category AND Subcategory = :subcategory AND Item = :item")
+    int countWordsByCategorySubcategoryItem(String category, String subcategory, String item);
 
     @Update
     int update(Word word);
@@ -104,7 +106,12 @@ public interface WordDao {
     Word getNextWordForCategorySubcatAndDifficulty(String category, String subcategory, String difficulty);
     @Query("SELECT * FROM Cards WHERE Subcategory = :subcat LIMIT 1")
     Word getFirstWordForSubcategory(String subcat);
-
+    @Query("SELECT * FROM Cards WHERE Item = :itemAi")
+    Word getWordByItem(String itemAi);
+    @Query("DELETE FROM Cards WHERE category = :category")
+    void deleteWordsByCategory(String category);
+    @Query("DELETE FROM Cards WHERE category = :category AND subcategory = :subcategory")
+    void deleteWordsBySubcategory(String category, String subcategory);
 }
 
 

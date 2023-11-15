@@ -1,24 +1,34 @@
 package au.smartflash.smartflash.model;
 
+import java.util.Objects;
+
 public class CategorySubcategoryPair {
+
     private String category;
     private String subcategory;
 
-    public CategorySubcategoryPair(String category, String subcategory) {
-        this.category = category;
-        this.subcategory = subcategory;
-    }
+    // Constructor, getters, and setters
 
-    public String getCategory() {
-        return category;
-    }
-
-    public String getSubcategory() {
-        return subcategory;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CategorySubcategoryPair that = (CategorySubcategoryPair) o;
+        return Objects.equals(category, that.category) &&
+                Objects.equals(subcategory, that.subcategory);
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hash(category, subcategory);
+    }
+
+    // toString method for logging, if needed
+    @Override
     public String toString() {
-        return category + " - " + subcategory;
+        return "CategorySubcategoryPair{" +
+                "category='" + category + '\'' +
+                ", subcategory='" + subcategory + '\'' +
+                '}';
     }
 }

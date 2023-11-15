@@ -26,6 +26,7 @@
         <activity android:name=".AdminActivity" />
         <activity android:name=".GetAICardsActivity" />
         <activity android:name=".UserAdminActivity" />
+        <activity android:name=".CardPairListActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

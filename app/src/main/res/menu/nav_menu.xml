@@ -11,6 +11,9 @@
     <item
         android:id="@+id/nav_getai_activity"
         android:title="Import AI Cards" />
+    <item
+        android:id="@+id/nav_getpaipairs_activity"
+        android:title="Download AICard Pairs" />
 
     <item
         android:id="@+id/nav_editai_activity"

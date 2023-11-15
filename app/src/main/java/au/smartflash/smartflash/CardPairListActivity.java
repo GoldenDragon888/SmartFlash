@@ -2,10 +2,12 @@ package au.smartflash.smartflash;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -19,76 +21,149 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import au.smartflash.smartflash.db.AIDatabase;
+//import au.smartflash.smartflash.db.AppDatabase;
 import au.smartflash.smartflash.db.AppDatabase;
-import au.smartflash.smartflash.model.ImportedWord;
+import au.smartflash.smartflash.model.AICard;
+import au.smartflash.smartflash.model.Word;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+//import au.smartflash.smartflash.model.AICard;
+
+import java.util.concurrent.CountDownLatch;
+
 
 public class CardPairListActivity extends AppCompatActivity implements CardPairsAdapter.OnCardClickListener {
     private CardPairsAdapter adapter;
-
-    private AIDatabase appDb;
-
+    private AppDatabase appDb;
     private CardPairsAdapter.OnCardClickListener cardClickListener;
-
     private FirebaseFirestore db;
-
-    private ImportedWord importedWord;
-
-    private List<ImportedWord> listOfCardPairs = new ArrayList<ImportedWord>();
-
+    private AICard importedWord;
+    private List<AICard> listOfCardPairs = new ArrayList<AICard>();
     private FirebaseAuth mAuth;
-
-    private List<ImportedWord> processedWords = new ArrayList<ImportedWord>();
-
+    private List<AICard> processedWords = new ArrayList<AICard>();
     private ProgressDialog progressDialogFetch;
-
     private RecyclerView rvCardPairs;
-
-    private List<ImportedWord> selectedCards = new ArrayList<ImportedWord>();
-
+    private List<AICard> selectedCards = new ArrayList<AICard>();
     private FirebaseUser user;
-
     private String userId;
-
     private Map<String, Integer> yourCardCountMap;
+    private RecyclerView recyclerView;
+    private List<CategorySubcategoryPair> uniqueCardPairs = new ArrayList<>();
+    private Map<CategorySubcategoryPair, Integer> cardCountMap = new HashMap<>();
 
-    private void checkIfSavedLocally(List<ImportedWord> importedWordsFromFirestore, final EditAIDBActivity.Callback callback) {
-        new AsyncTask<List<ImportedWord>, Void, Boolean>() {
-            @Override protected Boolean doInBackground(List<ImportedWord>... lists) {
-                List<ImportedWord> words = lists[0]; AppDatabase localDb = AppDatabase.getInstance(CardPairListActivity.this); for (ImportedWord importedWord : words) {
-                    au.smartflash.smartflash.model.Word localWord = localDb.wordDao().getWordByItem(importedWord.getItem());
+
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_card_pairs);
+
+        recyclerView = findViewById(R.id.rvCardPairs); // Initialize the RecyclerView
+
+        mAuth = FirebaseAuth.getInstance();
+        user = mAuth.getCurrentUser();
+        db = FirebaseFirestore.getInstance();
+        appDb = AppDatabase.getInstance(getApplicationContext());
+
+        // Initialize the RecyclerView
+        rvCardPairs = findViewById(R.id.rvCardPairs);
+        rvCardPairs.setLayoutManager(new LinearLayoutManager(this));
+
+        // Initialize the adapter with empty lists; these will be updated later
+        adapter = new CardPairsAdapter(new ArrayList<>(), createOnCardClickListener(), new HashMap<>());
+        rvCardPairs.setAdapter(adapter);
+
+        if (getIntent().hasExtra("userId")) {
+            userId = getIntent().getStringExtra("userId");
+        }
+
+        // Initialize onClickListeners
+        findViewById(R.id.btnDeleteSelected).setOnClickListener(v -> deleteSelectedCardPairs());
+        findViewById(R.id.btnDownloadEdit).setOnClickListener(v -> downloadandedit());
+        findViewById(R.id.btnRefresh).setOnClickListener(v -> refreshCardPairList());
+
+        Button btnHome = findViewById(R.id.home_button);
+
+        btnHome.setOnClickListener(view -> {
+            Intent intent = new Intent(CardPairListActivity.this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // This flag ensures that if MainActivity is already open, it will be brought to the front
+            startActivity(intent);
+            finish(); // Optionally, if you want to remove the current activity from the back stack
+        });
+
+
+        // Fetch data and populate the adapter
+        fetchData();
+    }
+
+    private void checkIfSavedLocally(List<AICard> importedWordsFromFirestore, final EditDBActivity.Callback callback) {
+        new AsyncTask<List<AICard>, Void, Boolean>() {
+            @Override
+            protected Boolean doInBackground(List<AICard>... lists) {
+                List<AICard> words = lists[0];
+                AppDatabase localDb = AppDatabase.getInstance(CardPairListActivity.this);
+                for (AICard importedWord : words) {
+                    au.smartflash.smartflash.model.Word localWord = localDb.wordDao().getWordByItem(importedWord.getItemAi());
                     if (localWord == null) {
-                        return false; }
-                    else { File internalStorageDir = getFilesDir(); String directoryPath = new File(internalStorageDir, "Smartflash/Images/" + importedWord.getCategory() + "/" + importedWord.getSubcategory()).getAbsolutePath(); String imageFile = new File(directoryPath, importedWord.getItem() + ".png").getAbsolutePath();
-                        File image = new File(imageFile); if (!image.exists()) {
-                            return false; } } }
-                return true; }
-            @Override protected void onPostExecute(Boolean result) { callback.onResult(result); } }
-                .execute(importedWordsFromFirestore); }
+                        return false;
+                    } else {
+                        File internalStorageDir = getFilesDir();
+                        String directoryPath = new File(internalStorageDir, "Smartflash/Images/" + importedWord.getCategoryAi() + "/" + importedWord.getSubcategoryAi()).getAbsolutePath();
+                        String imageFile = new File(directoryPath, importedWord.getItemAi() + ".png").getAbsolutePath();
+                        File image = new File(imageFile);
+                        if (!image.exists()) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
 
-    private void deleteAssociatedImage(ImportedWord card) {
-        String str = card.getImageURL();
+            @Override
+            protected void onPostExecute(Boolean result) {
+                callback.onResult(result);
+            }
+        }
+                .execute(importedWordsFromFirestore);
+    }
+
+    private void deleteAssociatedImage(AICard card) {
+        String str = card.getImageUrlAi();
         if (str != null && !str.trim().isEmpty()) {
             String imageReferencePath = "smartflash_objects/images/" + str.substring(str.lastIndexOf("/") + 1);
-            FirebaseStorage.getInstance().getReference(imageReferencePath).delete() .addOnSuccessListener(aVoid -> Log.d("FLAG", "Image deleted successfully.")) .addOnFailureListener(e -> Log.e("FLAG", "Error deleting image.", e)); } }
+            FirebaseStorage.getInstance().getReference(imageReferencePath).delete().addOnSuccessListener(aVoid -> Log.d("FLAG", "Image deleted successfully.")).addOnFailureListener(e -> Log.e("FLAG", "Error deleting image.", e));
+        }
+    }
 
     private void deleteFromCloud() {
         CollectionReference collectionReference = FirebaseFirestore.getInstance().collection("cards");
         View view = findViewById(android.R.id.content);
-        for (ImportedWord importedWord : this.selectedCards) {
+        for (AICard importedWord : this.selectedCards) {
             String str;
             Log.d("FLAG", "CardPairList delete pairs SelectedCards" + importedWord.toString());
-            if (importedWord.getId() != null) {
+            if (importedWord.getId() != null) {  // Corrected to use object
                 str = importedWord.getId().toString();
             } else {
                 str = "DefaultValue";
@@ -102,7 +177,8 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
                     .addOnFailureListener(e -> {
                         // Handle the error.
                         Log.w("Firestore", "Error deleting document", e);
-                    });        }
+                    });
+        }
         Snackbar.make(view, "Selected cards and images deleted!", -1).show();
     }
 
@@ -122,30 +198,125 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
             Query query = this.db.collection("cards").whereEqualTo("Username", username).limit(100L);
             Log.d("FLAG", "CardPair Fetchdata: " + username + " : ");
             query.get().addOnCompleteListener(this::handleFetchDataCompletion);
-
         } else {
-            Toast.makeText((Context)this, "User not authenticated", 0).show();
+            Toast.makeText((Context) this, "User not authenticated", Toast.LENGTH_LONG).show();
             dismissProgressDialog();
         }
     }
+
     private void handleFetchDataCompletion(@NonNull Task<QuerySnapshot> task) {
-        if (task.isSuccessful()) {
-            // Handle the successful fetching of data. Update your list and UI accordingly.
-            QuerySnapshot querySnapshot = task.getResult();
-            if (querySnapshot != null) {
-                // Convert the fetched documents to 'ImportedWord' or whatever is required
-                // Update your listOfCardPairs or whatever list you use
+        dismissProgressDialog();
+        if (task.isSuccessful() && task.getResult() != null) {
+            Log.d("FLAG", "handleFetchDataCompletion: ");
+            processQuerySnapshot(task.getResult());
+        } else {
+            logFetchError(task.getException());
+        }
+    }
+
+    private void processQuerySnapshot(QuerySnapshot querySnapshot) {
+        // Clear existing data
+        cardCountMap.clear();
+        uniqueCardPairs.clear();
+
+        Log.d("FLAG", "processQuerySnapshot: ");
+
+        for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
+            processDocumentSnapshot(documentSnapshot, cardCountMap, uniqueCardPairs);
+        }
+
+        logUniqueCardPairs(cardCountMap, uniqueCardPairs);
+        updateAdapterWithData(); // Update the adapter with the fetched data
+    }
+
+    private void updateAdapterWithData() {
+        if (adapter != null) {
+            adapter.updateList(uniqueCardPairs, cardCountMap);
+        }
+    }
+
+    private void processDocumentSnapshot(DocumentSnapshot documentSnapshot,
+                                         Map<CategorySubcategoryPair, Integer> cardCountMap,
+                                         List<CategorySubcategoryPair> uniqueCardPairs) {
+
+        Log.d("FLAG", "DocumentSnapshot Data: " + documentSnapshot.getData());
+
+        // Create a new AICard instance
+        AICard aiCard = new AICard();
+
+        // Manually set each field from the DocumentSnapshot
+        aiCard.setCategoryAi(documentSnapshot.getString("Category"));
+        aiCard.setSubcategoryAi(documentSnapshot.getString("Subcategory"));
+        // Set other fields similarly...
+
+        Log.d("FLAG", "processDocumentSnapshot: " + aiCard);
+
+        if (aiCard != null) {
+            Log.d("FLAG", "AICard Category: " + aiCard.getCategoryAi() + ", Subcategory: " + aiCard.getSubcategoryAi());
+
+            // Handle null values for category and subcategory
+            String category = aiCard.getCategoryAi() != null ? aiCard.getCategoryAi() : "";
+            String subcategory = aiCard.getSubcategoryAi() != null ? aiCard.getSubcategoryAi() : "";
+            CategorySubcategoryPair pair = new CategorySubcategoryPair(category, subcategory);
+            updateCardCountsAndPairs(cardCountMap, uniqueCardPairs, pair);
+        } else {
+            Log.d("FLAG", "Received null AICard from documentSnapshot: " + documentSnapshot.getId());
+        }
+    }
+
+    private void updateCardCountsAndPairs(Map<CategorySubcategoryPair, Integer> cardCountMap,
+                                          List<CategorySubcategoryPair> uniqueCardPairs,
+                                          CategorySubcategoryPair pair) {
+        if (pair.getCategory() != null && pair.getSubcategory() != null) {
+            cardCountMap.put(pair, cardCountMap.getOrDefault(pair, 0) + 1);
+            if (!uniqueCardPairs.contains(pair)) {
+                uniqueCardPairs.add(pair);
             }
         } else {
-            // Handle the error.
-            Log.w("Firestore", "Error fetching documents.", task.getException());
+            Log.d("FLAG", "Invalid pair with null values: " + pair);
         }
-        dismissProgressDialog();
     }
+
+    private void logUniqueCardPairs(Map<CategorySubcategoryPair, Integer> cardCountMap,
+                                    List<CategorySubcategoryPair> uniqueCardPairs) {
+        for (CategorySubcategoryPair pair : uniqueCardPairs) {
+            int count = cardCountMap.getOrDefault(pair, 0);
+            Log.d("FLAG", "Pair: " + pair + ", Count: " + count);
+        }
+    }
+
+
+    private void logFetchError(Exception exception) {
+        Log.d("FLAG", "Firestore - Error fetching documents.", exception);
+        Toast.makeText(this, "Error fetching data.", Toast.LENGTH_LONG).show();
+    }
+
+    private void updateRecyclerView() {
+        if (adapter != null) {
+            adapter.updateList(uniqueCardPairs, cardCountMap);
+        } else {
+            adapter = new CardPairsAdapter(uniqueCardPairs, createOnCardClickListener(), cardCountMap);
+            rvCardPairs.setAdapter(adapter);
+        }
+    }
+
+    private CardPairsAdapter.OnCardClickListener createOnCardClickListener() {
+        return new CardPairsAdapter.OnCardClickListener() {
+            @Override
+            public void onCardClick(int position) {
+                // Toggle selection in the adapter
+                CardPairsAdapter adapter = (CardPairsAdapter) rvCardPairs.getAdapter();
+                if (adapter != null) {
+                    adapter.toggleSelection(position);
+                }
+            }
+        };
+    }
+
 
     private void showProgressDialog(String paramString) {
         if (this.progressDialogFetch == null) {
-            ProgressDialog progressDialog = new ProgressDialog((Context)this);
+            ProgressDialog progressDialog = new ProgressDialog((Context) this);
             this.progressDialogFetch = progressDialog;
             progressDialog.setCancelable(false);
         }
@@ -154,7 +325,7 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
     }
 
     public void onCardClick(int paramInt) {
-        ImportedWord importedWord = this.listOfCardPairs.get(paramInt);
+        AICard importedWord = this.listOfCardPairs.get(paramInt);
         importedWord.setSelected(importedWord.isSelected() ^ true);
         if (importedWord.isSelected()) {
             this.selectedCards.add(importedWord);
@@ -164,36 +335,13 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
         this.adapter.notifyItemChanged(paramInt);
     }
 
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_card_pairs);
-
-        mAuth = FirebaseAuth.getInstance();
-        user = mAuth.getCurrentUser();
-        db = FirebaseFirestore.getInstance();
-        appDb = AIDatabase.getInstance(getApplicationContext());
-
-        rvCardPairs = findViewById(R.id.rvCardPairs);
-        rvCardPairs.setLayoutManager(new LinearLayoutManager(this));
-
-        if (getIntent().hasExtra("userId")) {
-            userId = getIntent().getStringExtra("userId");
-        }
-
-        //Need to fix the methods for these. Should be OK.
-        findViewById(R.id.btnDeleteSelected).setOnClickListener(v -> yourMethodFor2131296606());
-        findViewById(R.id.btnDownloadEdit).setOnClickListener(v -> yourMethodFor2131296392());
-        findViewById(R.id.home_button).setOnClickListener(v -> yourMethodFor2131296391());
-
-        fetchData();
-    }
-
     public void showDeleteAIConfirmationDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Delete Confirmation")
                 .setMessage("Do you really want to delete all cards and associated images from the cloud? (They will be saved locally if imported previously).")
                 .setPositiveButton("Yes, Delete", (dialog, id) -> handlePositiveDelete())
-                .setNegativeButton("Cancel", (dialog, id) -> {})
+                .setNegativeButton("Cancel", (dialog, id) -> {
+                })
                 .create().show();
     }
 
@@ -202,16 +350,302 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
         // Your code
     }
 
-    private void yourMethodFor2131296392() {
-        // Your code
+    public void downloadandedit() {
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Downloading data...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        Log.d("FLAG", "In downloadandedit");
+
+        CardPairsAdapter adapter = (CardPairsAdapter) rvCardPairs.getAdapter();
+        Log.d("FLAG", "In downloadandedit");
+
+        if (adapter != null) {
+            List<CategorySubcategoryPair> selectedPairs = adapter.getSelectedPairs();
+
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            AppDatabase localDb = AppDatabase.getInstance(getApplicationContext());
+            Log.d("FLAG", "In downloadandedit after get databases");
+            Executor executor = Executors.newSingleThreadExecutor();
+            executor.execute(() -> {
+                CountDownLatch latch = new CountDownLatch(selectedPairs.size());
+
+                for (CategorySubcategoryPair pair : selectedPairs) {
+                    if (pair.getCategory() == null || pair.getSubcategory() == null) {
+                        Log.w("FLAG", "Category or Subcategory is null, skipping Firestore query for this pair.");
+                        latch.countDown(); // Ensure the latch is counted down for skipped pairs
+                        continue;
+                    }
+
+                    Log.d("FLAG", "Querying Firestore for: Category=" + pair.getCategory() + ", Subcategory=" + pair.getSubcategory());
+                    db.collection("cards")
+                            .whereEqualTo("Category", pair.getCategory())
+                            .whereEqualTo("Subcategory", pair.getSubcategory())
+                            .get()
+                            .addOnSuccessListener(querySnapshot -> {
+                                Log.d("FLAG", "Query success, processing snapshot");
+                                executor.execute(() -> {
+                                    processQuerySnapshot(querySnapshot, localDb);
+                                });
+                                latch.countDown();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("FLAG", "Error fetching document", e);
+                                latch.countDown();
+                            });
+                }
+
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    Log.e("FLAG", "Latch awaiting was interrupted", e);
+                }
+
+                progressDialog.dismiss();
+                runOnUiThread(() -> {
+                    Intent intent = new Intent(CardPairListActivity.this, EditDBActivity.class);
+                    startActivity(intent);
+                });
+            });
+        } else {
+            progressDialog.dismiss();
+        }
+    }
+    private void processQuerySnapshot(QuerySnapshot querySnapshot, AppDatabase localDb) {
+        Log.d("FLAG", "In processQuerySnapshot: ");
+
+        for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
+            Log.d("FLAG", "Raw Document Snapshot Data: " + documentSnapshot.getData());
+            AICard aiCard = new AICard();
+            //AICard aiCard = documentSnapshot.toObject(AICard.class);
+            aiCard.setCategoryAi(documentSnapshot.getString("Category"));
+            aiCard.setSubcategoryAi(documentSnapshot.getString("Subcategory"));
+            aiCard.setItemAi(documentSnapshot.getString("Item"));
+            aiCard.setDescriptionAi(documentSnapshot.getString("Description"));
+            aiCard.setDetailsAi(documentSnapshot.getString("Details"));
+            aiCard.setImageUrlAi(documentSnapshot.getString("Image"));
+            //aiCard.setItemAi(documentSnapshot.getString("Item"));
+
+            Log.d("FLAG", "AICard Data: " + aiCard.toString());
+
+            if (aiCard != null) {
+                boolean isDuplicate = localDb.wordDao().wordExists(aiCard.getItemAi(), aiCard.getDescriptionAi()) > 0;
+                if (!isDuplicate) {
+                    Log.d("FLAG", "AICard Data Item: " + aiCard.getItemAi());
+                    Word wordEntry = new Word();
+                    wordEntry.setCategory(aiCard.getCategoryAi());
+                    wordEntry.setSubcategory(aiCard.getSubcategoryAi());
+                    wordEntry.setItem(aiCard.getItemAi());
+                    wordEntry.setDescription(aiCard.getDescriptionAi());
+                    wordEntry.setDetails(aiCard.getDetailsAi());
+                    wordEntry.setDifficulty("Easy");
+                    // Set other fields from aiCard...
+
+                    File imageFile = new File(getExternalFilesDir(null), "Images/" + aiCard.getCategoryAi() + "/" + aiCard.getSubcategoryAi() + "/" + aiCard.getItemAi() + ".png");
+                    if (!imageFile.getParentFile().exists()) {
+                        imageFile.getParentFile().mkdirs(); // Create directories if they do not exist
+                    }
+
+                    // Download the image in the background and then insert the word into the database
+                    downloadImage(aiCard.getImageUrlAi(), imageFile, () -> {
+                        // This code will run after the image is downloaded
+                        // You may want to do something with the image file here
+                        //wordEntry.setImage(imageFile); // Set image path or byte array if necessary
+
+                        // Insert word into the database
+                        localDb.wordDao().insertWord(wordEntry);
+                        Log.d("FLAG", "processQuerySnapshot Inserted: " + wordEntry.getItem());
+                    });
+
+                    Log.d("FLAG", "processQuerySnapshot Inserted: " + wordEntry.getItem());
+                }
+            }
+        }
+    }
+    public void deleteSelectedCardPairs() {
+        CardPairsAdapter adapter = (CardPairsAdapter) rvCardPairs.getAdapter();
+        if (adapter != null) {
+            List<CategorySubcategoryPair> selectedPairs = adapter.getSelectedPairs();
+            if (selectedPairs.isEmpty()) {
+                Toast.makeText(this, "No pairs selected for deletion.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete Confirmation")
+                    .setMessage("Are you sure you want to delete these card pairs? This action is irreversible.")
+                    .setPositiveButton("Delete", (dialog, which) -> executeDeletion(selectedPairs))
+                    .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                    .show();
+        } else {
+            Toast.makeText(this, "Adapter is null, cannot delete.", Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private void yourMethodFor2131296391() {
-        // Your code
+    private void executeDeletion(List<CategorySubcategoryPair> selectedPairs) {
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Deleting selected card pairs...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Executor executor = Executors.newSingleThreadExecutor();
+        executor.execute(() -> {
+            CountDownLatch latch = new CountDownLatch(selectedPairs.size());
+
+            for (CategorySubcategoryPair pair : selectedPairs) {
+                db.collection("cards")
+                        .whereEqualTo("Category", pair.getCategory())
+                        .whereEqualTo("Subcategory", pair.getSubcategory())
+                        .get()
+                        .addOnSuccessListener(querySnapshot -> {
+                            for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
+                                db.collection("cards").document(documentSnapshot.getId()).delete()
+                                        .addOnSuccessListener(aVoid -> {
+                                            Log.d("FLAG", "DocumentSnapshot successfully deleted!");
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.w("FLAG", "Error deleting document", e);
+                                        });
+                            }
+                            latch.countDown();
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e("FLAG", "Error fetching document for deletion", e);
+                            latch.countDown();
+                        });
+            }
+
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                Log.e("FLAG", "Latch awaiting was interrupted", e);
+            }
+
+            progressDialog.dismiss();
+            runOnUiThread(() -> {
+                // Refresh the UI or list to indicate that the items have been deleted
+                Toast.makeText(this, "Selected pairs deleted successfully.", Toast.LENGTH_SHORT).show();
+                // Update your adapter here if needed
+                adapter.removeSelectedPairs();
+                //adapter.updatePairs(newCards);
+                adapter.notifyDataSetChanged();
+            });
+        });
+    }
+    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private void downloadImage(String imageUrl, File imageFile, Runnable callback) {
+        executorService.execute(() -> {
+            try {
+                URL url = new URL(imageUrl);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setDoInput(true);
+                connection.connect();
+                if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                    throw new IOException("HTTP error code: " + connection.getResponseCode());
+                }
+                InputStream input = connection.getInputStream();
+                FileOutputStream output = new FileOutputStream(imageFile);
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, bytesRead);
+                }
+                output.close();
+                input.close();
+                Log.d("Image Download", "Image saved to " + imageFile.getPath());
+                if (callback != null) {
+                    callback.run();
+                }
+            } catch (IOException e) {
+                Log.e("Image Download", "Error while downloading the image.", e);
+            }
+        });
+    }
+    private void refreshCardPairList() {
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Refreshing data...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        Log.d("FLAG", "Refreshing CardPairList");
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        CardPairsAdapter adapter = (CardPairsAdapter) rvCardPairs.getAdapter();
+        if (adapter != null) {
+            List<CategorySubcategoryPair> currentPairs = adapter.getPairs();
+
+            Executor executor = Executors.newSingleThreadExecutor();
+            executor.execute(() -> {
+                CountDownLatch latch = new CountDownLatch(currentPairs.size());
+
+                for (CategorySubcategoryPair pair : currentPairs) {
+                    // Logic to fetch new data for each pair...
+                    db.collection("cards")
+                            .whereEqualTo("Category", pair.getCategory())
+                            .whereEqualTo("Subcategory", pair.getSubcategory())
+                            .get()
+                            .addOnSuccessListener(querySnapshot -> {
+                                List<CategorySubcategoryPair> newPairs = processQuerySnapshotToPairs(querySnapshot); // You need to implement this
+                                runOnUiThread(() -> adapter.updatePairs(newPairs));
+                                latch.countDown();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("FLAG", "Error refreshing data", e);
+                                latch.countDown();
+                            });
+                }
+
+                try {
+                    latch.await();
+                    // Final UI changes should be run on the main thread
+                    runOnUiThread(() -> {
+                        progressDialog.dismiss();
+                        // You do not need to call notifyDataSetChanged here since it's called inside updatePairs method.
+                    });
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    runOnUiThread(progressDialog::dismiss);
+                }
+            });
+        } else {
+            progressDialog.dismiss();
+            Toast.makeText(this, "Adapter not initialized", Toast.LENGTH_SHORT).show();
+        }
+    }
+    private List<CategorySubcategoryPair> processQuerySnapshotToPairs(QuerySnapshot querySnapshot) {
+        List<CategorySubcategoryPair> pairs = new ArrayList<>();
+
+        if (querySnapshot != null) {
+            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                // Assuming the document contains fields 'category' and 'subcategory'
+                String category = document.getString("Category");
+                String subcategory = document.getString("Subcategory");
+                if (category != null && subcategory != null) {
+                    pairs.add(new CategorySubcategoryPair(category, subcategory));
+                    // If you have a count or other fields, add them here.
+                }
+            }
+        }
+        return pairs;
     }
 
-    private void handlePositiveDelete() {
+
+    private int generateUniqueId() {
+        // Implement the logic to generate a unique ID.
+        // This could be based on the highest existing ID in your database.
+        return 0;
+    }
+
+    // In your database helper or DAO class
+    private boolean hasDuplicate(String category, String subcategory, String item) {
+        AppDatabase db = AppDatabase.getInstance(getApplicationContext());
+        int count = db.wordDao().countWordsByCategorySubcategoryItem(category, subcategory, item);
+        return count > 0;
+    }
+
+   private void handlePositiveDelete() {
         // Handle deletion logic here
     }
-
 }

@@ -11,7 +11,7 @@ import au.smartflash.smartflash.dao.WordDao;
 import au.smartflash.smartflash.model.AICard;
 import au.smartflash.smartflash.model.Word;
 
-@Database(entities = {Word.class, AICard.class}, version = 2, exportSchema = false)
+@Database(entities = {Word.class, AICard.class}, version = 3, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static final String DATABASE_NAME = "SMARTFLASHDB.sqlite"; // Just the name, no path
