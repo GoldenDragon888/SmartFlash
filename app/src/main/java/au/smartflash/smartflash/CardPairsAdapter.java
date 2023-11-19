@@ -9,6 +9,8 @@ import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -22,6 +24,17 @@ public class CardPairsAdapter extends RecyclerView.Adapter<CardPairsAdapter.Your
     private final OnCardClickListener listener;
     private Map<CategorySubcategoryPair, Integer> cardCountMap;
     private Set<Integer> selectedPositions = new HashSet<>();
+    private static final Comparator<CategorySubcategoryPair> ALPHABETICAL_COMPARATOR = new Comparator<CategorySubcategoryPair>() {
+        @Override
+        public int compare(CategorySubcategoryPair pair1, CategorySubcategoryPair pair2) {
+            int categoryCompare = pair1.getCategory().compareTo(pair2.getCategory());
+            if (categoryCompare != 0) {
+                return categoryCompare;
+            }
+            return pair1.getSubcategory().compareTo(pair2.getSubcategory());
+        }
+    };
+
     // Method to get the current list of pairs
     public List<CategorySubcategoryPair> getPairs() {
         return new ArrayList<>(listOfPairs); // Return a copy of the current list
@@ -33,6 +46,8 @@ public class CardPairsAdapter extends RecyclerView.Adapter<CardPairsAdapter.Your
     }
 
     public void updateList(List<CategorySubcategoryPair> newListOfPairs, Map<CategorySubcategoryPair, Integer> newCardCountMap) {
+        Collections.sort(newListOfPairs, ALPHABETICAL_COMPARATOR);
+
         listOfPairs.clear();
         listOfPairs.addAll(newListOfPairs);
         cardCountMap.clear();
@@ -53,12 +68,14 @@ public class CardPairsAdapter extends RecyclerView.Adapter<CardPairsAdapter.Your
     }
 
     public void updatePairs(List<CategorySubcategoryPair> newPairs) {
-        // Replace the current list with the new list of pairs.
+        Collections.sort(newPairs, ALPHABETICAL_COMPARATOR);
+
         listOfPairs.clear();
         listOfPairs.addAll(newPairs);
-        selectedPositions.clear(); // Optionally clear the selection as the data set has changed
-        notifyDataSetChanged(); // Notify any registered observers that the data set has changed.
+        selectedPositions.clear();
+        notifyDataSetChanged();
     }
+
 
 
     public int getItemCount() {

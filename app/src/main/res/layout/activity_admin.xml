@@ -15,15 +15,18 @@
         app:layout_constraintTop_toTopOf="parent" />
     <RelativeLayout
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent">
+        android:layout_height="fill_parent"
+        >
         <Button
             android:textSize="24.0sp"
             android:id="@+id/select_csv_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="130.0dip"
+            android:layout_marginTop="80.0dip"
+            android:backgroundTint="@color/flash_blue"
             android:text="Select CSV to import"
-            android:layout_centerHorizontal="true" />
+            android:layout_centerHorizontal="true"
+            />
         <TextView
             android:textSize="24.0sp"
             android:id="@+id/csv_file_path"
@@ -31,6 +34,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10.0dip"
             android:text="No file selected"
+
             android:layout_below="@id/select_csv_button"
             android:layout_centerHorizontal="true" />
         <Button
@@ -40,6 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10.0dip"
             android:text="Export DB to .csv"
+            android:backgroundTint="@color/flash_blue"
             android:layout_below="@id/csv_file_path"
             android:layout_centerHorizontal="true" />
         <Spinner
@@ -48,13 +53,29 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10.0dip"
             android:layout_below="@id/button_Export"
-            android:layout_centerHorizontal="true" />
+            android:layout_centerHorizontal="true"
+            android:visibility="gone" />
         <Spinner android:id="@+id/subcategory_spinner"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10.0dip"
             android:layout_below="@id/category_spinner"
-            android:layout_centerHorizontal="true" />
+            android:layout_centerHorizontal="true"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/instructions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10.0dip"
+            android:layout_below="@id/subcategory_spinner"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/edit_text_border"
+            android:padding="16dp"
+            android:text="@string/csv_instructions"
+            android:textSize="16.0sp"
+            android:gravity="center"
+            android:layout_above="@id/home_button"
+           />
         <Button
             android:id="@id/home_button"
             android:layout_width="wrap_content"
@@ -63,11 +84,6 @@
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:backgroundTint="@color/orange" />
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            android:layout_above="@id/home_button"
-            android:layout_below="@id/button_Export" />
+
     </RelativeLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -16,10 +16,6 @@
         android:title="Download AICard Pairs" />
 
     <item
-        android:id="@+id/nav_editai_activity"
-        android:title="Edit imported AI Records" />
-
-    <item
         android:id="@+id/user_registration"
         android:title="User Registration" />
 

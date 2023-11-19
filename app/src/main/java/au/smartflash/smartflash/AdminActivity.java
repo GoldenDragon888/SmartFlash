@@ -29,10 +29,13 @@ import androidx.core.content.ContextCompat;
 import androidx.room.Room;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import au.smartflash.smartflash.db.AppDatabase;
@@ -187,7 +190,7 @@ public class AdminActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.button_Export).setOnClickListener(view -> {
-            // Whatever AdminActivity$$ExternalSyntheticLambda0 is doing, put that logic here directly.
+            exportDatabaseToCSV();
         });
 
         Button homeButton = findViewById(R.id.home_button);
@@ -281,20 +284,34 @@ public class AdminActivity extends AppCompatActivity {
         }
     }
 
-
     private Word parseCSVLine(String line) {
         String[] columns = line.split(",");
-        String category = columns.length > 0 ? columns[0].trim() : "";
-        String subcategory = columns.length > 1 ? columns[1].trim() : "";
-        String item = columns.length > 2 ? columns[2].trim() : "";
+        String category = columns.length > 0 ? capitalizeWords(columns[0].trim()) : "";
+        String subcategory = columns.length > 1 ? capitalizeWords(columns[1].trim()) : "";
+        String item = columns.length > 2 ? capitalizeWords(columns[2].trim()) : "";
         String description = columns.length > 3 ? columns[3].trim() : "";
         String details = columns.length > 4 ? columns[4].trim() : "";
         String difficulty = columns.length > 5 && columns[5] != null ? columns[5].trim() : "Easy";
 
-
         Log.d("FLAG", "loadCSVIntoDatabase - reading csv Category: " + category);
 
         return new Word(0, category, subcategory, item, description, details, difficulty, null);
+    }
+
+    private String capitalizeWords(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+
+        StringBuilder capitalizedText = new StringBuilder();
+        String[] words = text.split("\\s"); // Split the string by whitespace
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                capitalizedText.append(Character.toUpperCase(word.charAt(0)))
+                        .append(word.substring(1)).append(" ");
+            }
+        }
+        return capitalizedText.toString().trim(); // Trim to remove the last extra space
     }
 
     private boolean isDuplicateWord(ArrayList<Word> words, Word newWord) {
@@ -339,4 +356,43 @@ public class AdminActivity extends AppCompatActivity {
         intent.setType("*/*");
         startActivityForResult(intent, 42);
     }
+    private void exportDatabaseToCSV() {
+        File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CSV_DB_Backup");
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+
+        String csvFileName = "database_backup.csv";
+        File csvFile = new File(folder, csvFileName);
+
+        AppDatabase appDatabase = Room.databaseBuilder(getApplicationContext(), AppDatabase.class, "SMARTFLASHDB.sqlite")
+                .allowMainThreadQueries() // Only for debugging, remove in production
+                .build();
+
+        try {
+            FileWriter writer = new FileWriter(csvFile);
+
+            // Example of how to write a header line, adjust columns as per your database schema
+            writer.append("Category,Subcategory,Item,Description,Details,Difficulty\n");
+
+            // Fetch data from database and write to the file
+            List<Word> words = appDatabase.wordDao().getAllWords(); // Assuming there's a method to get all words
+            for (Word word : words) {
+                writer.append(word.getCategory()).append(",");
+                writer.append(word.getSubcategory()).append(",");
+                writer.append(word.getItem()).append(",");
+                writer.append(word.getDescription()).append(",");
+                writer.append(word.getDetails()).append(",");
+                writer.append(word.getDifficulty()).append("\n");
+            }
+
+            writer.flush();
+            writer.close();
+            Log.d("FLAG", "CSV Export - File written to " + csvFile.getAbsolutePath());
+            Toast.makeText(this, "Successfully Exported local DB to /storage/emulated/0/CSV_DB_Backup/database_backup.csv", Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Log.e("FLAG", "CSV Export - Error", e);
+        }
+    }
+
 }

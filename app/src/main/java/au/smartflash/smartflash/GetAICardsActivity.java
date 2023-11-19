@@ -69,21 +69,12 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import okio.Buffer;
 
 public class GetAICardsActivity extends AppCompatActivity {
-    private static final int MAX_RETRIES = 10;
-    private static final long POLLING_INTERVAL = 10000L;
-    private static final long POLLING_INTERVAL_MS = 8000L;
+
     private AppDatabase appDb;
     private List<CategorySubcategoryPair> categorySubcategoryPairs;
     private OkHttpClient client;
     private int currentRetryCount = 0;
     private FirebaseFirestore db;
-    private EditText editAITextCategory;
-    private EditText editAITextDescription;
-    private EditText editAITextDetails;
-
-    private EditText editAITextDifficulty;
-    private EditText editAITextItem;
-    private EditText editAITextSubcategory;
     EditText editToLanguage;
     private EditText editgetAICategory, editgetAISubcat;
     private ScheduledExecutorService executorService;
@@ -95,11 +86,8 @@ public class GetAICardsActivity extends AppCompatActivity {
     //private int messageIndex = 0;
     private Handler pollingHandler = new Handler(Looper.getMainLooper());
     private AlertDialog progressDialog;
-    private ProgressDialog progressDialogFetch;
-
     private Button requestCardsButton;
     private ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
-    private Snackbar snackbarRequest;
     private Spinner spinnerNumCards;
     private static final int MESSAGE_DELAY_MILLIS = 5000; // 5 seconds delay
     private int messageIndex = 0;

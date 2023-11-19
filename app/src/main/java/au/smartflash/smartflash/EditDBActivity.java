@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -285,12 +286,12 @@ public class EditDBActivity extends AppCompatActivity {
             builder.setTitle("Select Category");
 
             getAllCategories(categories -> {
+                Arrays.sort(categories, String.CASE_INSENSITIVE_ORDER);  // Sort the categories array first
                 builder.setItems(categories, (dialog, which) -> {
                     String selectedCategory = categories[which];
 
                     // Set the button's text to reflect the chosen category
                     buttonCategory.setText(selectedCategory);
-
                     editTextCategory.setText(selectedCategory);
                     populateCategoryData(selectedCategory);  // Populate the data after selecting the category
 
@@ -299,17 +300,15 @@ public class EditDBActivity extends AppCompatActivity {
                         if (subcategories != null && subcategories.length > 0) {
                             String firstSubcategory = subcategories[0];
                             editTextSubcat.setText(firstSubcategory);
-
-                            // Also update the subcategory button text to show the first subcategory
                             buttonSubcat.setText(firstSubcategory);
-
-                            // No need to call populateSubcategoryData() here since we've already set the first subcategory in populateCategoryData
+                            // ... rest of the code ...
                         }
                     });
                 });
                 builder.show();
             });
         });
+
         buttonSubcat.setOnClickListener(view -> {
             String selectedCategory = editTextCategory.getText().toString();
             if (selectedCategory.isEmpty()) {
@@ -321,6 +320,7 @@ public class EditDBActivity extends AppCompatActivity {
             builder.setTitle("Select Subcategory");
 
             getSubcategoriesForCategory(selectedCategory, subcategories -> {
+                Arrays.sort(subcategories, String.CASE_INSENSITIVE_ORDER);  // Sort the subcategories array
                 builder.setItems(subcategories, (dialog, which) -> {
                     String selectedSubcategory = subcategories[which];
 
@@ -698,7 +698,7 @@ public class EditDBActivity extends AppCompatActivity {
                         wordDao.deleteWordsByCategory(category);
 
                         // You need to convert LiveData to List synchronously since we are already off the main thread.
-                        List<Word> updatedWords = wordDao.getAllWords().getValue(); // Make sure to call this after the deletion is done.
+                        List<Word> updatedWords = wordDao.getAllWords(); // Make sure to call this after the deletion is done.
                         runOnUiThread(() -> {
                             Toast.makeText(EditDBActivity.this, "Category deleted successfully", Toast.LENGTH_SHORT).show();
                             // TODO: Update your UI here if necessary.
@@ -720,7 +720,7 @@ public class EditDBActivity extends AppCompatActivity {
                         wordDao.deleteWordsBySubcategory(category, subcategory);
 
                         // Same here for LiveData to List conversion.
-                        List<Word> updatedWords = wordDao.getAllWords().getValue(); // Again, make sure to call this after the deletion.
+                        List<Word> updatedWords = wordDao.getAllWords(); // Again, make sure to call this after the deletion.
                         runOnUiThread(() -> {
                             Toast.makeText(EditDBActivity.this, "Subcategory deleted successfully", Toast.LENGTH_SHORT).show();
                             // TODO: Update your UI here if necessary.

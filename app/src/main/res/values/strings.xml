@@ -30,7 +30,20 @@
     <string name="prompt_num_cards">How many?</string>
     <string name="original_category_hint">Choose Category</string>
     <string name="original_subcategory_hint">Choose Subcategory</string>
+    <string name="csv_instructions">Exporting your local Card Database to .csv will create a full backup to a file here:
 
+        /storage/emulated/0/CSV_DB_Backup/database_backup.csv\n
+        This can be restored at any time by selecting the CSV to import and locating the file\n
+        You can also import additional Cards with the same .csv format just by locating the file.\n
+        The format CSV format needs to be: Category,Subcategory,Item,Description,Details,Difficulty \n
+        If Difficulty is not included then it will default to "Easy"\n
+        Difficulty should be limited to "Easy", "Medium", "Hard", and I am working on "P1", "P2", "P3"\n
+        The Ps will be implemented as a basic todo list.\n
+        Images can be copied to: /storage/emulated/0/Images/"category"/"subcategory"/"item".png\n
+        Replace the "" with the actual values of the card image required.\n
+        Images can also be selected by pressing the image in the Edit Card screen.
+
+    </string>
 
 
     <string name="lorem_ipsum">

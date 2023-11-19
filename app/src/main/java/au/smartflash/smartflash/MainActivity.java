@@ -72,6 +72,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,21 +94,8 @@ import au.smartflash.smartflash.model.Word;
 import android.Manifest;
 
 public class MainActivity extends AppCompatActivity implements OnTaskCompleted, NavigationView.OnNavigationItemSelectedListener {
-    private static final int AUDIO_REQUEST_CODE = 1234;
-    private static final int OVERLAY_PERMISSION_REQ_CODE = 9101;
-    private static final int REQUEST_CODE = 1234;
-    private static final int REQUEST_READ_EXTERNAL_STORAGE = 1234;
-    private static final int REQUEST_RECORD_AUDIO = 5678;
-    private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 200;
-    private static final String TAG = "MainActivity";
-    private ArrayAdapter<String> adapterCategory;
-    private ArrayAdapter<String> adapterSubcat;
-    private Button audioCheckButton;
 
-    private ImageView back_desc_container;
-    private ImageView back_details_container;
-    private ImageView back_image_container;
-    private ImageView back_item_container;
+    private Button audioCheckButton;
     private FrameLayout frontCardContainer;
     private TextView frontTextView;
     private FrameLayout frontItemContainer;
@@ -122,8 +110,6 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     private FrameLayout imageCardContainer;
     private ImageView imageViewFront;  // assuming this is the front
     private FrameLayout imageViewBackContainer;  // this contains the back of the card
-    private TextView backImageTextView;
-
     Button btnEasy;
     Button btnHard;
     Button btnMedium;
@@ -474,11 +460,23 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         imageViewPart3 = findViewById(R.id.imageViewPart3);
         imageViewPart4 = findViewById(R.id.imageViewPart4);
 
+        // Call this in your onCreate or initialization method
+        initialSetup(frontCardContainer, frontTextView, frontItemContainer);
+        initialSetup(backCardContainer, backTextView, backItemContainer);
+        initialSetup(detailsCardContainer, detailsTextView, detailsItemContainer);
+        initialSetup(imageCardContainer, imageViewFront, imageViewBackContainer);
+
         // Set up the flipping
         setupCardFlip(frontCardContainer, frontTextView, frontItemContainer, new BooleanHolder(false));
         setupCardFlip(backCardContainer, backTextView, backItemContainer, new BooleanHolder(false));
         setupCardFlip(detailsCardContainer, detailsTextView, detailsItemContainer, new BooleanHolder(false));
         setupCardFlip(imageCardContainer, imageViewFront, imageViewBackContainer, new BooleanHolder(false));
+    }
+    // Method definition
+    private void initialSetup(View container, View frontView, View backView) {
+        frontView.setVisibility(View.INVISIBLE);   // Front view is visible
+        backView.setVisibility(View.VISIBLE);  // Back view is hidden
+        container.setRotationY(0.0F);            // Normal rotation
     }
 
     private void setOnClickListeners() {
@@ -513,51 +511,7 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         dialogBuilder.show();
     }
 
-    //private Executor executor = Executors.newSingleThreadExecutor(); // Initialize the executor
-/*
-    private void updateDifficulty(String newDifficulty) {
-        if (currentWord != null) {
-            synchronized (currentWord) {
-                currentWord.setDifficulty(newDifficulty);
-                Log.d("FLAG", "Setting difficulty in-memory: " + currentWord.getDifficulty());
 
-                executor.execute(() -> {
-                    try {
-                        if (db != null && wordDao != null) {
-                            Log.d("FLAG", "Updating difficulty with currentWord: " + currentWord);
-
-                            // Update the database and check the return value
-                            int rowsAffected = wordDao.update(currentWord);
-                            if (rowsAffected > 0) {
-                                Log.d("FLAG", "Successfully updated word: " + currentWord.getItem());
-                            } else {
-                                Log.e("FLAG", "Failed to update word: No matching word found in the database.");
-                                return; // Exit from this execution if update wasn't successful
-                            }
-
-                            // Fetch fresh data after a slight delay, ensuring the update is committed
-                            try {
-                                Thread.sleep(100);  // introducing a small delay, you might adjust or remove this
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-
-                            currentWord = wordDao.getWordById(currentWord.getId());
-                            Log.d("FLAG", "Fetched from database: " + currentWord.getDifficulty());
-                        } else {
-                            Log.e("DatabaseUpdate", "Database or DAO is null. Check initialization.");
-                        }
-                    } catch (Exception e) {
-                        Log.e("DatabaseUpdate", "Failed to update difficulty: " + e.getMessage());
-                    }
-                });
-            }
-        } else {
-            Toast.makeText(this, "No word selected for update", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-*/
     private void updateDifficulty(String newDifficulty) {
         if (currentWord != null) {
             synchronized (currentWord) {
@@ -570,6 +524,8 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
                     runOnUiThread(() -> {
                         Toast.makeText(this, "Word updated successfully", Toast.LENGTH_SHORT).show();
                         updateCatSubcatDiffLabelsandCounts();
+                        updateUIComponents();  // This will call updateWordDisplay
+
                         //handleSelectedDifficulty(newDifficulty);
                     });
                 });
@@ -577,22 +533,18 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         } else {
                 Toast.makeText(this, "No word selected for update", Toast.LENGTH_SHORT).show();
         }
-
-    }
-    private void displayToast(String message) {
-        Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
     }
     private void handleNextButtonClick() {
-        String currentDifficulty = difficulty;
-        Log.d("FLAG", "Handling next button click. Current difficulty: " + currentDifficulty);
+        //String currentDifficulty = difficulty;
+        Log.d("FLAG", "Handling next button click. Current difficulty: " + difficulty);
 
-        if ("Random".equals(difficulty)) {
-            currentDifficulty = getRandomDifficulty();
+        if (isRandomDifficulty) {
+            difficulty = getRandomDifficulty();
         }
 
         wordHistory.push(currentWord);
         showNextFlashcard();
-        updateButtonStates(currentDifficulty);
+        updateButtonStates(difficulty); // Now this reflects the current or random difficulty
         updateCatSubcatDiffLabelsandCounts();
     }
 
@@ -866,23 +818,71 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             }
         });
     }
+    private boolean isRandomDifficulty = false;
 
+    /*
     private void handleSelectedDifficulty(String selectedDifficulty) {
-        difficulty = selectedDifficulty;
+        if ("Random".equals(selectedDifficulty)) {
+            isRandomDifficulty = true;
+            fetchAndDisplayNewWordForRandomDifficulty(); // Only fetch and update for random difficulty
+        } else {
+            isRandomDifficulty = false;
+            difficulty = selectedDifficulty;
+            refreshBasedOnCurrentSelections(); // Update UI for user-selected difficulty
+        }
+    }
+
+     */
+    private void handleSelectedDifficulty(String selectedDifficulty) {
+        if ("Random".equals(selectedDifficulty)) {
+            isRandomDifficulty = true;
+            fetchWord();  // This will now check the count before updating UI
+        } else {
+            isRandomDifficulty = false;
+            difficulty = selectedDifficulty;
+            fetchWord();  // This will now check the count before updating UI
+        }
+    }
+
+    private void fetchAndDisplayNewWordForRandomDifficulty() {
+        executor.execute(() -> {
+            String newDifficulty = getRandomDifficulty();
+            List<Word> words = wordDao.getAllWordsForCategorySubcatAndDifficulty(selectedCategory, subcategory, newDifficulty);
+
+            runOnUiThread(() -> {
+                if (!words.isEmpty()) {
+                    difficulty = newDifficulty;
+                    wordsList = words;
+                    currentIndex = 0;
+                    displayNextWord(wordsList.get(currentIndex));
+                    updateUIComponentsWithNewDifficulty(); // Update all UI components
+                } else {
+                    // If no records found, try another random difficulty
+                    fetchAndDisplayNewWordForRandomDifficulty();
+                }
+            });
+        });
+    }
+    private void updateUIComponentsWithNewDifficulty() {
+        updateButtonStates(difficulty); // Now updates only after confirming records
         updateCatSubcatDiffLabelsandCounts();
-        updateButtonStates(selectedDifficulty);
         updateUI();
-        refreshBasedOnCurrentSelections();
+    }
+
+
+    private void fetchAndDisplayNewWordForSelectedDifficulty() {
+        refreshBasedOnCurrentSelections(); // This might need to fetch and update the UI as well
+
     }
 
     private void refreshBasedOnCurrentSelections() {
-
         if ("All".equals(difficulty)) {
             loadWordsIfNeeded();
         } else {
             loadWordsForSpecificDifficulty();
         }
     }
+
     private void loadWordsForSpecificDifficulty() {
         executor.execute(() -> {
             wordsList = wordDao.getAllWordsForCategorySubcatAndDifficulty(selectedCategory, subcategory, difficulty);
@@ -951,75 +951,35 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
 
 
     private void setupCardFlip(View container, final View frontView, final View backView, final BooleanHolder isFlippedHolder) {
-        // Initial setup based on the current status of the card
-        if (!isFlippedHolder.value) {
-            frontView.setVisibility(View.INVISIBLE);
-            backView.setVisibility(View.VISIBLE);
-            frontView.setScaleX(-1);   // Mirrored
-            container.setRotationY(180.0F);
-        } else {
-            frontView.setVisibility(View.VISIBLE);
-            backView.setVisibility(View.INVISIBLE);
-            container.setRotationY(0.0F);
-        }
-
         container.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ObjectAnimator firstHalfAnimator;
-                ObjectAnimator secondHalfAnimator;
-                if (!isFlippedHolder.value) {
-                    firstHalfAnimator = ObjectAnimator.ofFloat(v, "rotationY", 0f, 90f);
-                    secondHalfAnimator = ObjectAnimator.ofFloat(v, "rotationY", 90f, 180f);
-                } else {
-                    firstHalfAnimator = ObjectAnimator.ofFloat(v, "rotationY", 180f, 90f);
-                    secondHalfAnimator = ObjectAnimator.ofFloat(v, "rotationY", 90f, 0f);
-                }
-                setupAnimator(firstHalfAnimator, secondHalfAnimator, frontView, backView, isFlippedHolder);
-                firstHalfAnimator.start();
-            }
+                ObjectAnimator flipAnimator = ObjectAnimator.ofFloat(container, "rotationY", isFlippedHolder.value ? 180f : 0f, isFlippedHolder.value ? 360f : 180f);
+                flipAnimator.setDuration(300L);
+                flipAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
 
-        });
-    }
+                flipAnimator.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        // Toggle the visibility at the end of the flip
+                        if (!isFlippedHolder.value) {
+                            frontView.setVisibility(View.VISIBLE);
+                            backView.setVisibility(View.INVISIBLE);
+                        } else {
+                            frontView.setVisibility(View.INVISIBLE);
+                            backView.setVisibility(View.VISIBLE);
+                        }
 
-    private void setupAnimator(ObjectAnimator firstAnimator, ObjectAnimator secondAnimator,
-                               final View frontView, final View backView,
-                               final BooleanHolder isFlippedHolder) {
-
-        final long DURATION = 150L;
-        Interpolator interpolator = new AccelerateDecelerateInterpolator();
-
-        firstAnimator.setDuration(DURATION);
-        secondAnimator.setDuration(DURATION);
-
-        firstAnimator.setInterpolator(interpolator);
-        secondAnimator.setInterpolator(interpolator);
-
-        firstAnimator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                secondAnimator.start();
-            }
-        });
-
-        secondAnimator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                if (!isFlippedHolder.value) {
-                    frontView.setVisibility(View.VISIBLE);
-                    backView.setVisibility(View.GONE);
-                } else {
-                    frontView.setVisibility(View.GONE);
-                    backView.setVisibility(View.VISIBLE);
-                }
-                isFlippedHolder.value = !isFlippedHolder.value;
+                        // Correcting the rotation to prevent continuous rotation accumulation
+                        container.setRotationY(isFlippedHolder.value ? 0f : 0f);
+                        isFlippedHolder.value = !isFlippedHolder.value;
+                    }
+                });
+                flipAnimator.start();
             }
         });
     }
 
-    //private void showNextFlashcard() {
-    //    showNextFlashcard(selectedCategory, subcategory, difficulty);
-    //}
 
     private void showNextFlashcard() {
         Log.d("FLAG", "Fetching next flashcard for - Category: " + selectedCategory + ", Subcategory: " + subcategory + ", Difficulty: " + difficulty);
@@ -1031,43 +991,73 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         Log.d("FLAG", "fetchWord called with difficulty: " + difficulty + ", currentIndex: " + currentIndex);
 
         executor.execute(() -> {
+            int difficultyCount = getSelectedDifficultyCount();
+
+            if (difficultyCount == 0) {
+                runOnUiThread(() -> {
+                    if (isRandomDifficulty) {
+                        difficulty = getRandomDifficulty();
+                        fetchWord(); // Recursive call to try with new random difficulty
+                    } else {
+                        displayEmptyWordMessage();
+                        updatedifficultyCountUI(0); // Update the difficulty count to zero
+                    }
+                });
+                return; // Exit the current execution to avoid proceeding further
+            }
+
             Word word = null;
 
-            // If the difficulty is "All", we fetch from the preloaded list
             if ("All".equals(difficulty)) {
-                Log.d("FLAG", "fetchWord called with difficulty: " + difficulty + ", currentIndex: " + currentIndex + ", Wordlist size: " + wordsList.size());
-
-                if (currentIndex > wordsList.size() - 1) {
-                    currentIndex = 0;  // Reset index if at the end of list
+                // Check if wordsList is empty to avoid IndexOutOfBoundsException
+                if (!wordsList.isEmpty()) {
+                    if (currentIndex >= wordsList.size()) {
+                        currentIndex = 0;
+                    }
+                    word = wordsList.get(currentIndex++);
                 }
-                word = wordsList.get(currentIndex++);
-            }
-            // For specific difficulties, query the next unseen word from the database
-            else {
+            } else {
                 word = wordDao.getNextWordNotIncludingId(difficulty, selectedCategory, subcategory, lastWordId);
                 if (word != null) {
                     lastWordId = word.getId();
                 }
             }
 
-            // Switch back to the main thread to update the UI
-            final Word finalWord = word;  // Need a final variable to be accessed inside the runOnUiThread
+            final Word finalWord = word;
             runOnUiThread(() -> {
-                Log.d("FLAG", "Displaying word on UI: " + finalWord);
-                displayNextWord(finalWord);
+                if (finalWord != null) {
+                    displayNextWord(finalWord);
+                    updateButtonStates(difficulty);
+                    updatedifficultyCountUI(difficultyCount);
+                } else {
+                    displayEmptyWordMessage();
+                }
             });
         });
     }
 
-
     private void displayNextWord(Word word) {
         if(word != null) {
             processFoundWord(word);
-            // Your logic to display the word
         } else {
-            displayEmptyWordMessage();
-            // Logic if no word is returned
+            isOnlyWordInDifficulty(isOnlyWord -> {
+                if (isOnlyWord) {
+                    processFoundWord(currentWord);
+                    updateButtonStates(difficulty);  // Update button states here, after confirming a word is available
+
+                } else {
+                    displayEmptyWordMessage();
+                }
+            });
         }
+    }
+    private void isOnlyWordInDifficulty(Consumer<Boolean> callback) {
+        executor.execute(() -> {
+            int count = wordDao.countWordsWithDifficulty(difficulty);
+            runOnUiThread(() -> {
+                callback.accept(count == 1);
+            });
+        });
     }
     private void performDatabaseOperation(Runnable operation) {
         new Thread(operation).start();
@@ -1095,6 +1085,8 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             frontTextView.setText("No word");
             backTextView.setText("For This Category");
             detailsTextView.setText("Please choose another difficulty or Random");
+
+            imageViewFront.setImageResource(R.drawable.smartflashnoimage);
         });
     }
 
@@ -1125,14 +1117,6 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         updateWordDisplay(currentWord);
     }
 
-    // Save Preferences
-    private void savePreferences() {
-        SharedPreferences.Editor editor = getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
-        editor.putString(KEY_LAST_CATEGORY, selectedCategory);
-        editor.putString(KEY_LAST_SUBCAT, subcategory);
-        editor.putString(KEY_LAST_DIFFICULTY, difficulty);
-        editor.apply();
-    }
 
     // Generalized Dialog Method
     private <T> void showSelectionDialog(String title, List<T> items, Consumer<T> onItemSelected) {
@@ -1153,11 +1137,13 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
 
     // Use the Generalized Dialog Method for Category, Subcategory, and Difficulty
     private void showCategorySelectionDialog() {
+        Collections.sort(categoriesList, String.CASE_INSENSITIVE_ORDER);
         showSelectionDialog("Choose a Category", categoriesList, this::handleSelectedCategory);
     }
 
     private void showSubcatSelectionDialog() {
         List<String> subcatList = categoryToSubcatMap.getOrDefault(selectedCategory, new ArrayList<>());
+        Collections.sort(subcatList, String.CASE_INSENSITIVE_ORDER);
         showSelectionDialog("Choose a Subcategory", subcatList, this::handleSelectedSubcat);
     }
 
@@ -1168,6 +1154,7 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             // Ensure that "All" is at the top of the list
             List<String> difficultyList = new ArrayList<>();
             difficultyList.add("All");
+            difficultyList.add("Random");
             difficultyList.addAll(categorySubcatToDifficultyMap.getOrDefault(new Pair<>(selectedCategory, subcategory), new ArrayList<>()));
 
             runOnUiThread(() -> {
@@ -1175,15 +1162,12 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             });
         });
     }
-
-
     private void refreshDataFromDAO() {
         // Here, fetch the relevant data from the DAO and update categorySubcatToDifficultyMap
         // For instance, if you have a DAO method that fetches the difficulties for a specific category and subcategory:
         List<String> difficulties = wordDao.getDifficultiesForCategoryAndSubcat(selectedCategory, subcategory);
         categorySubcatToDifficultyMap.put(new Pair<>(selectedCategory, subcategory), difficulties);
     }
-
     private void loadMappingsFromDatabase() {
         new Thread(() -> {
             try {
@@ -1393,15 +1377,6 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             paramIntent.getStringExtra("Word");
     }
 
-    /*
-    public void onBackPressed() {
-        if (this.drawer.isDrawerOpen(8388611)) {
-            this.drawer.closeDrawer(8388611);
-        } else {
-            super.onBackPressed();
-        }
-    }
-*/
 
     private void initializeUIComponents() {
         this.externalDir = getExternalFilesDir(null);
@@ -1468,8 +1443,7 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         } else if (id == R.id.nav_getai_activity) {
             Intent intent = new Intent(this, GetAICardsActivity.class);
             startActivity(intent);
-        } else if (id == R.id.nav_editai_activity) {
-            // handle action for 'Edit AI Cards'
+
         } else if (id == R.id.nav_getpaipairs_activity) {
             Intent intent = new Intent(this, CardPairListActivity.class);
             startActivity(intent);
@@ -1545,51 +1519,44 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         setImageToView(imageViewPart3, "part3.png");
         setImageToView(imageViewPart4, "part4.png");
     }
-
-
     public void onSaveInstanceState(Bundle paramBundle) {
         super.onSaveInstanceState(paramBundle);
         paramBundle.putInt("CurrentRecordIndex", this.currentRecordIndex);
     }
-
     public void onTaskCompleted() {
         updateButtonStates(difficulty);
         Log.d("FLAG", "showNextFlashcard 1: " + difficulty + selectedCategory + subcategory);
         showNextFlashcard();
     }
-
     private void showSnackbar(String snackbarText) {
         View contextView = findViewById(android.R.id.content); // use the root view
         Snackbar snackbar = Snackbar.make(contextView, snackbarText, Snackbar.LENGTH_LONG);
         snackbar.show();
     }
-
     public void updateButtonStates(String difficulty) {
         resetButtonsToDefault();
+        setButtonToSelected(difficulty);
 
-        if ("All".equals(difficulty)) {
-            String currentWordDifficulty = currentWord.getDifficulty();
-            // Set the color of the button that matches the currentWordDifficulty to green
-            setButtonToSelected(currentWordDifficulty);
-        } else {
-            setButtonToSelected(difficulty);
-        }
+        //if ("All".equals(difficulty)) {
+        //    String currentWordDifficulty = currentWord.getDifficulty();
+        //    // Set the color of the button that matches the currentWordDifficulty to green
+        //    setButtonToSelected(currentWordDifficulty);
+        //} else {
+        //    setButtonToSelected(difficulty);
+        //}
     }
-
     private void resetButtonsToDefault() {
         int defaultColor = ContextCompat.getColor(this, R.color.dark_red);
         btnEasy.setBackgroundColor(defaultColor);
         btnMedium.setBackgroundColor(defaultColor);
         btnHard.setBackgroundColor(defaultColor);
     }
-
     private void setAllButtonsToSelected() {
         int selectedColor = ContextCompat.getColor(this, R.color.dark_green);
         btnEasy.setBackgroundColor(selectedColor);
         btnMedium.setBackgroundColor(selectedColor);
         btnHard.setBackgroundColor(selectedColor);
     }
-
     private void setButtonToSelected(String difficulty) {
         int selectedColor = ContextCompat.getColor(this, R.color.dark_green);
         Button targetButton = getButtonForDifficulty(difficulty);
@@ -1597,7 +1564,6 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             targetButton.setBackgroundColor(selectedColor);
         }
     }
-
     private Button getButtonForDifficulty(String difficulty) {
         Map<String, Button> difficultyButtonMap = new HashMap<>();
         difficultyButtonMap.put("Easy", btnEasy);
@@ -1645,7 +1611,6 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
                     }
                 });
     }
-
     private void navigateToMainAppScreen() {
         // Navigation code to main app screen
         Intent intent = new Intent(this, MainActivity.class);
@@ -1658,7 +1623,6 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         startActivity(intent);
         finish();
     }
-
     public static class BooleanHolder {
         public boolean value;
 

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -29,6 +30,7 @@ import com.google.firebase.storage.FirebaseStorage;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -355,22 +357,16 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
         progressDialog.setMessage("Downloading data...");
         progressDialog.setCancelable(false);
         progressDialog.show();
-        Log.d("FLAG", "In downloadandedit");
 
+        ExecutorService executor = Executors.newCachedThreadPool();
         CardPairsAdapter adapter = (CardPairsAdapter) rvCardPairs.getAdapter();
-        Log.d("FLAG", "In downloadandedit");
-
         if (adapter != null) {
             List<CategorySubcategoryPair> selectedPairs = adapter.getSelectedPairs();
-
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             AppDatabase localDb = AppDatabase.getInstance(getApplicationContext());
-            Log.d("FLAG", "In downloadandedit after get databases");
-            Executor executor = Executors.newSingleThreadExecutor();
-            executor.execute(() -> {
-                CountDownLatch latch = new CountDownLatch(selectedPairs.size());
+            CountDownLatch latch = new CountDownLatch(selectedPairs.size());
 
-                for (CategorySubcategoryPair pair : selectedPairs) {
+            for (CategorySubcategoryPair pair : selectedPairs) {
                     if (pair.getCategory() == null || pair.getSubcategory() == null) {
                         Log.w("FLAG", "Category or Subcategory is null, skipping Firestore query for this pair.");
                         latch.countDown(); // Ensure the latch is counted down for skipped pairs
@@ -378,28 +374,26 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
                     }
 
                     Log.d("FLAG", "Querying Firestore for: Category=" + pair.getCategory() + ", Subcategory=" + pair.getSubcategory());
-                    db.collection("cards")
-                            .whereEqualTo("Category", pair.getCategory())
-                            .whereEqualTo("Subcategory", pair.getSubcategory())
-                            .get()
-                            .addOnSuccessListener(querySnapshot -> {
-                                Log.d("FLAG", "Query success, processing snapshot");
-                                executor.execute(() -> {
-                                    processQuerySnapshot(querySnapshot, localDb);
-                                });
-                                latch.countDown();
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e("FLAG", "Error fetching document", e);
-                                latch.countDown();
+                db.collection("cards")
+                        .whereEqualTo("Category", pair.getCategory())
+                        .whereEqualTo("Subcategory", pair.getSubcategory())
+                        .get()
+                        .addOnSuccessListener(querySnapshot -> {
+                            executor.execute(() -> {
+                                processQuerySnapshot(querySnapshot, localDb, latch); // Updated method call
                             });
+                        })
+                        .addOnFailureListener(e -> {
+                            latch.countDown();
+                        });
                 }
 
+            // Run waiting for latch in a separate thread to avoid blocking the executor
+            new Thread(() -> {
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    Log.e("FLAG", "Latch awaiting was interrupted", e);
                 }
 
                 progressDialog.dismiss();
@@ -407,16 +401,20 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
                     Intent intent = new Intent(CardPairListActivity.this, EditDBActivity.class);
                     startActivity(intent);
                 });
-            });
+            }).start();
         } else {
             progressDialog.dismiss();
         }
     }
-    private void processQuerySnapshot(QuerySnapshot querySnapshot, AppDatabase localDb) {
-        Log.d("FLAG", "In processQuerySnapshot: ");
+    private void processQuerySnapshot(QuerySnapshot querySnapshot, AppDatabase localDb, CountDownLatch latch) {
+        Log.d("FLAG", "In processQuerySnapshot");
+
+        if (querySnapshot.isEmpty()) {
+            latch.countDown(); // Immediately count down if there are no documents
+            return;
+        }
 
         for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
-            Log.d("FLAG", "Raw Document Snapshot Data: " + documentSnapshot.getData());
             AICard aiCard = new AICard();
             //AICard aiCard = documentSnapshot.toObject(AICard.class);
             aiCard.setCategoryAi(documentSnapshot.getString("Category"));
@@ -449,20 +447,59 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
 
                     // Download the image in the background and then insert the word into the database
                     downloadImage(aiCard.getImageUrlAi(), imageFile, () -> {
-                        // This code will run after the image is downloaded
-                        // You may want to do something with the image file here
-                        //wordEntry.setImage(imageFile); // Set image path or byte array if necessary
-
-                        // Insert word into the database
                         localDb.wordDao().insertWord(wordEntry);
                         Log.d("FLAG", "processQuerySnapshot Inserted: " + wordEntry.getItem());
+                        if (querySnapshot.getDocuments().indexOf(documentSnapshot) == querySnapshot.size() - 1) {
+                            exportDataToCSV(aiCard.getCategoryAi(), aiCard.getSubcategoryAi());
+                        }
+                        latch.countDown(); // Count down after processing each document
                     });
-
-                    Log.d("FLAG", "processQuerySnapshot Inserted: " + wordEntry.getItem());
+                } else {
+                    if (querySnapshot.getDocuments().indexOf(documentSnapshot) == querySnapshot.size() - 1) {
+                        exportDataToCSV(aiCard.getCategoryAi(), aiCard.getSubcategoryAi());
+                    }
+                    latch.countDown(); // Count down if it's a duplicate
                 }
             }
         }
     }
+    private void exportDataToCSV(String category, String subcategory) {
+        File folder = new File(getExternalFilesDir(null), "CSV_DB_Backup");
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+
+        AppDatabase localDb = AppDatabase.getInstance(getApplicationContext());
+        String fileName = category + "_" + subcategory + ".csv";
+        File csvFile = new File(folder, fileName);
+        Log.d("FLAG", "CSV Export - Before File written to " + csvFile.getAbsolutePath());
+
+        try (FileWriter writer = new FileWriter(csvFile)) {
+            writer.append("\"Category\",\"Subcategory\",\"Item\",\"Description\",\"Details\",\"Difficulty\"\n");
+
+            List<Word> words = localDb.wordDao().getWordsByCategoryAndSubcategory(category, subcategory);
+            for (Word word : words) {
+                writer.append(quoted(word.getCategory())).append(",");
+                writer.append(quoted(word.getSubcategory())).append(",");
+                writer.append(quoted(word.getItem())).append(",");
+                writer.append(quoted(word.getDescription())).append(",");
+                writer.append(quoted(word.getDetails())).append(",");
+                writer.append(quoted(word.getDifficulty())).append("\n");
+            }
+
+            writer.flush();
+            String successMessage = "Selected pairs successfully backed up to " + csvFile.getAbsolutePath();
+            runOnUiThread(() -> Toast.makeText(this, successMessage, Toast.LENGTH_LONG).show());
+        } catch (IOException e) {
+            Log.e("FLAG", "CSV Export - Error", e);
+            String errorMessage = "Error exporting CSV: " + e.getMessage();
+            runOnUiThread(() -> Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show());
+        }
+    }
+    private String quoted(String text) {
+        return "\"" + text.replace("\"", "\"\"") + "\"";
+    }
+
     public void deleteSelectedCardPairs() {
         CardPairsAdapter adapter = (CardPairsAdapter) rvCardPairs.getAdapter();
         if (adapter != null) {

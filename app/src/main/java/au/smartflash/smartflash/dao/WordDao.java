@@ -34,6 +34,8 @@ public interface WordDao {
     //void update(Word word);
     @Query("SELECT COUNT(*) FROM Cards WHERE Category = :category AND Subcategory = :subcategory AND Item = :item")
     int countWordsByCategorySubcategoryItem(String category, String subcategory, String item);
+    @Query("SELECT COUNT(id) FROM Cards WHERE difficulty = :difficulty")
+    int countWordsWithDifficulty(String difficulty);
 
     @Update
     int update(Word word);
@@ -50,7 +52,7 @@ public interface WordDao {
     @Query("DELETE FROM Cards WHERE id = :currentId")
     int deleteWordById(int currentId);
     @Query("SELECT * FROM Cards")
-    LiveData<List<Word>> getAllWords();
+    List<Word> getAllWords();
     @Query("SELECT * FROM Cards WHERE Item = :front LIMIT 1")
     Word getWordByFront(String front);
     @Query("SELECT * FROM Cards WHERE Category = :category LIMIT 1")
