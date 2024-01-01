@@ -595,13 +595,14 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     }
 
     private void loadWordsIfNeeded() {
-        Log.d("FLAG", "Before checking conditions: selectedCategory = " + selectedCategory + ", subcategory = " + subcategory);
-        if ("All".equals(difficulty) && selectedCategory != null && subcategory != null) {
+        Log.d("FLAG", "Checking conditions for 'All': selectedCategory = " + selectedCategory + ", subcategory = " + subcategory);
+        if (selectedCategory != null && subcategory != null) {
             loadActualWordsForCategoryAndSubcategory(selectedCategory, subcategory);
         } else {
-            Log.d("FLAG", "Either 'All' is not chosen, or Category/Subcategory are not initialized yet.");
+            Log.d("FLAG", "Category/Subcategory are not initialized yet.");
         }
     }
+
     private void loadActualWordsForCategoryAndSubcategory(String category, String subcategory) {
         Log.d("FLAG", "loadActualWordsForCategoryAndSubcategory called with category: " + category + ", subcategory: " + subcategory);
         executor.execute(() -> {
@@ -834,16 +835,15 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
 
      */
     private void handleSelectedDifficulty(String selectedDifficulty) {
-        if ("Random".equals(selectedDifficulty)) {
-            isRandomDifficulty = true;
-            fetchWord();  // This will now check the count before updating UI
+        isRandomDifficulty = "Random".equals(selectedDifficulty);
+        difficulty = selectedDifficulty; // Set difficulty to the selected one, be it 'All', 'Random', or specific
+
+        if (isRandomDifficulty) {
+            fetchWord(); // Fetch word for random difficulty
         } else {
-            isRandomDifficulty = false;
-            difficulty = selectedDifficulty;
-            fetchWord();  // This will now check the count before updating UI
+            refreshBasedOnCurrentSelections(); // This handles 'All' and specific difficulties
         }
     }
-
     private void fetchAndDisplayNewWordForRandomDifficulty() {
         executor.execute(() -> {
             String newDifficulty = getRandomDifficulty();
@@ -1535,15 +1535,15 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     }
     public void updateButtonStates(String difficulty) {
         resetButtonsToDefault();
-        setButtonToSelected(difficulty);
+        //setButtonToSelected(difficulty);
 
-        //if ("All".equals(difficulty)) {
-        //    String currentWordDifficulty = currentWord.getDifficulty();
-        //    // Set the color of the button that matches the currentWordDifficulty to green
-        //    setButtonToSelected(currentWordDifficulty);
-        //} else {
-        //    setButtonToSelected(difficulty);
-        //}
+        if ("All".equals(difficulty)) {
+            String currentWordDifficulty = currentWord.getDifficulty();
+            // Set the color of the button that matches the currentWordDifficulty to green
+            setButtonToSelected(currentWordDifficulty);
+        } else {
+            setButtonToSelected(difficulty);
+        }
     }
     private void resetButtonsToDefault() {
         int defaultColor = ContextCompat.getColor(this, R.color.dark_red);
