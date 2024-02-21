@@ -69,7 +69,16 @@ public class Word implements Serializable {
 
     @Override
     public String toString() {
-        return "Word{item='" + item + '\'' + ", description='" + description + '\'' + ", details='" + details + '\'' + ", difficulty='" + difficulty + '\'' + '}';
+        return "Word{" +
+                "id=" + id +
+                ", category='" + category + '\'' +
+                ", subcategory='" + subcategory + '\'' +
+                ", item='" + item + '\'' +
+                ", description='" + description + '\'' +
+                ", details='" + details + '\'' +
+                ", difficulty='" + difficulty + '\'' +
+                ", imageurl='" + image + '\'' +
+                '}';
     }
 
     @Ignore

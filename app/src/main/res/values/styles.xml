@@ -4,4 +4,30 @@
         <!-- Customize your pop-up overlay here -->
         ...
     </style>
+    <style name="CustomButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="android:background">@drawable/custom_button_bg</item>
+
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textAllCaps">false</item>
+        <!-- Other style attributes -->
+    </style>
+    <style name="Theme.SmartFlashPrime" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/dark_blue</item>
+        <item name="android:windowBackground">@color/my_background_color</item>
+
+        <!-- Customize your theme here. -->
+    </style>
+    <style name="MyTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/my_background_color</item>
+    </style>
+    <style name="CustomButton" parent="Base.Widget.AppCompat.Button">
+        <item name="android:background">@drawable/custom_button_bg</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:padding">10dp</item>
+        <item name="android:textAllCaps">false</item>
+
+        <!-- Other style properties -->
+    </style>
+
 </resources>

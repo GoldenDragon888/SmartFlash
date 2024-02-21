@@ -5,11 +5,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -21,27 +23,47 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.room.Room;
 
+import com.google.android.gms.common.util.IOUtils;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageException;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.google.gson.Gson;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -52,12 +74,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 //import au.smartflash.smartflash.db.AIDatabase;
 import au.smartflash.smartflash.db.AppDatabase;
 import au.smartflash.smartflash.model.AICard;
 import au.smartflash.smartflash.model.CategorySubcategoryPair;
+import au.smartflash.smartflash.model.Word;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -67,8 +91,10 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
 import okio.Buffer;
+import android.os.Environment;
 
-public class GetAICardsActivity extends AppCompatActivity {
+
+public class GetAICardsActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private AppDatabase appDb;
     private List<CategorySubcategoryPair> categorySubcategoryPairs;
@@ -78,7 +104,7 @@ public class GetAICardsActivity extends AppCompatActivity {
     EditText editToLanguage;
     private EditText editgetAICategory, editgetAISubcat;
     private ScheduledExecutorService executorService;
-    private Button fetchDataButton;
+    private Button fetchDataButton, btnHome;
     Button informationButton;
     Button languageButton;
     private AppDatabase localdb;
@@ -110,188 +136,471 @@ public class GetAICardsActivity extends AppCompatActivity {
             "You can click anywhere and come back later to download card pairs"
             // Add more messages as needed
     );
+    private AppDatabase localDb;
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
 
-    protected void onCreate(Bundle paramBundle) {
-        super.onCreate(paramBundle);
-        setContentView(R.layout.activity_get_aicards); // Your layout name
+        if (id == R.id.nav_flashcards) {
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+            // handle action for 'Edit Card Records'
+        } else if (id == R.id.nav_edit_db) {
+            Intent intent = new Intent(this, EditDBActivity.class);
+            startActivity(intent);
+            // handle action for 'Edit Card Records'
+        } else if (id == R.id.nav_admin_activity) {
+            Intent intent = new Intent(this, AdminActivity.class);
+            startActivity(intent);
+            // handle action for 'Import Export .CSV'
+        } else if (id == R.id.nav_getai_activity) {
+            Intent intent = new Intent(this, GetAICardsActivity.class);
+            startActivity(intent);
+
+        } else if (id == R.id.nav_getpaipairs_activity) {
+            Intent intent = new Intent(this, CardPairListActivity.class);
+            startActivity(intent);
+            //}else if (id == R.id.user_registration) {
+            // handle action for 'User Registration'
+        } else if (id == R.id.nav_user_admin) {
+            Intent intent = new Intent(this, UserAdminActivity.class);
+            startActivity(intent);
+        } else if (id == R.id.nav_card_image) {
+            Intent intent = new Intent(this, ChooseCardFaceActivity.class);
+            startActivity(intent);
+        }
+
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_get_aicards);
 
         initializeDatabase();
         setupViews();
         setupListeners();
+        initializeClient();
+    }
+
+    private void initializeDatabase() {
+        if (this.localDb == null) {
+            this.localDb = Room.databaseBuilder(
+                    getApplicationContext(),
+                    AppDatabase.class,
+                    "SMARTFLASHDB.sqlite"
+            ).fallbackToDestructiveMigration().build();
+        }
+    }
+    private void setupViews() {
+        // ... Initialize your UI elements ...
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        if (drawer != null) {
+            NavigationView navigationView = findViewById(R.id.nav_view);
+            if (navigationView != null) {
+                navigationView.setNavigationItemSelectedListener(this);
+            }
+
+            ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                    this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+            drawer.addDrawerListener(toggle);
+            // Set the color of the "hamburger" icon to white
+            toggle.getDrawerArrowDrawable().setColor(getResources().getColor(android.R.color.white));
+
+            toggle.syncState();
+        } else {
+            // Log an error or handle the case where the drawer is null
+        }
+
+        editgetAICategory = findViewById(R.id.editgetAICategory);
+        editgetAISubcat = findViewById(R.id.editgetAISubcat);
+        spinnerNumCards = findViewById(R.id.spinnerNumCards);
+        editToLanguage = findViewById(R.id.editToLanguage);
+
+        informationButton = findViewById(R.id.informationButton);
+        languageButton = findViewById(R.id.languageButton);
+
+        requestCardsButton = findViewById(R.id.requestCardsButton);
+        requestCardsButton.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green)));
+
+        fetchDataButton = findViewById(R.id.fetchDataButton);
+        fetchDataButton.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_purple)));
+
+        btnHome = findViewById(R.id.buttongetAIHome);
+        btnHome.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange)));
+
+        Button btnSync = findViewById(R.id.syncCardsButton);
+        btnSync.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
+
+        btnSync.setOnClickListener(v -> {
+            //test_gcs_upload();
+            showSyncConfirmationDialog(btnSync);
+        });
+
+        setInitialButtonState();
+        setupSpinner();
+    }
+    // Method to show progress dialog and start the sync process
+    private void showSyncConfirmationDialog(Button syncButton) {
+        new AlertDialog.Builder(this)
+                .setTitle("Sync to Cloud")
+                .setMessage("WARNING - any changes made Locally using this app will overwrite the Cloud Card including any updated images. Do you wish to proceed?")
+                .setPositiveButton("Yes", (dialog, which) -> showSyncProgressDialog(syncButton))
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    private void showSyncProgressDialog(Button syncButton) {
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Syncing local data to cloud...");
+        progressDialog.setCancelable(false); // set to true if you want to allow cancel
+        progressDialog.show();
+
+        // Start the sync process
+        startSyncProcess(progressDialog, syncButton);
+    }
+
+    private void startSyncProcess(ProgressDialog progressDialog, Button syncButton) {
+        new Thread(() -> {
+            if (localDb == null) {
+                initializeDatabase();
+            }
+
+            List<Word> localWords = localDb.wordDao().getAllWords();
+            AtomicInteger wordsProcessed = new AtomicInteger();
+
+            for (Word word : localWords) {
+                // Directly sync each word to the cloud without checking for duplicates
+                uploadImageToGCSAndCreateDocument(word, () -> {
+                    if (wordsProcessed.incrementAndGet() == localWords.size()) {
+                        runOnUiThread(() -> {
+                            if (progressDialog.isShowing()) {
+                                progressDialog.dismiss();
+                            }
+                            syncButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(), R.color.dark_green));
+                        });
+                    }
+                });
+            }
+        }).start();
+    }
+    private void checkForDuplicatesAndSync(Word word, Runnable onComplete) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("cards")
+                .whereEqualTo("Item", word.getItem())
+                .whereEqualTo("Category", word.getCategory())
+                .whereEqualTo("Subcategory", word.getSubcategory())
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        uploadImageToGCSAndCreateDocument(word, onComplete);
+                    } else {
+                        Log.d("FLAG", "Duplicate found, skipping: " + word.getItem());
+                        onComplete.run();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FLAG", "Error checking duplicates", e);
+                    onComplete.run();
+                });
+    }
+
+    private void uploadImageToGCSAndCreateDocument(Word word, Runnable onComplete) {
+        File imageFile = getImageFile(word);
+        if (imageFile.exists()) {
+            uploadImageToGCS(imageFile, word, onComplete);
+        } else {
+            Log.d("FLAG", "Image file does not exist, proceeding without image for word: " + word.getItem());
+            createFirestoreDocument(word, null, onComplete);
+        }
+    }
+
+    private File getImageFile(Word word) {
+        return new File(getExternalFilesDir(null), "images/" + word.getCategory() + "/" + word.getSubcategory() + "/" + word.getItem() + ".png");
+    }
+
+    private void test_gcs_upload() {
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this);
+
+        FirebaseStorage firebaseStorage = FirebaseStorage.getInstance();
+        StorageReference storageRef = firebaseStorage.getReference();
+
+        // Replace with your actual file path
+        File imagePath = new File(getExternalFilesDir(null), "/Images/Fish/Tropical");
+        File newFile = new File(imagePath, "Goldfish.png");
+
+        if (!newFile.exists()) {
+            Log.e("UploadTest", "File does not exist: " + newFile.getAbsolutePath());
+            return;
+        }
+
+        Uri fileUri = Uri.fromFile(newFile);
+        Log.d("UploadTest", "File URI: " + fileUri.toString());
+
+        StorageReference fileRef = storageRef.child("/images/AAA/" + fileUri.getLastPathSegment());
+        Log.d("UploadTest", "Firebase Storage Path: " + fileRef.getPath());
+
+        fileRef.putFile(fileUri)
+                .addOnSuccessListener(taskSnapshot -> Log.d("UploadTest", "Upload successful"))
+                .addOnFailureListener(e -> {
+                    Log.e("UploadTest", "Upload failed", e);
+                    // Log more detailed information about the exception
+                    Log.e("UploadTest", "Exception details: ", e);
+                    if (e instanceof StorageException) {
+                        StorageException storageException = (StorageException) e;
+                        Log.e("UploadTest", "Error Code: " + storageException.getErrorCode());
+                        Log.e("UploadTest", "HTTP Result Code: " + storageException.getHttpResultCode());
+                        Log.e("UploadTest", "Detailed Error Message: " + storageException.getMessage());
+                    }
+                });
+    }
+
+    private void uploadImageToGCS(File imageFile, Word word, Runnable onComplete) {
+        if (!imageFile.exists() || !imageFile.canRead()) {
+            Log.e("FLAG", "Image file does not exist or cannot be read: " + imageFile.getAbsolutePath());
+            onComplete.run();
+            return;
+        }
+
+        // Initialize Firebase, if not already initialized
+        if (FirebaseApp.getApps(this).isEmpty()) {
+            FirebaseApp.initializeApp(this);
+        }
+
+        // Constructing the GCS image path
+        String gcsImagePath = "images/" + word.getCategory() + "/" +
+                word.getSubcategory() + "/" +
+                word.getItem() + ".png";
+
+        FirebaseStorage firebaseStorage = FirebaseStorage.getInstance();
+        StorageReference storageRef = firebaseStorage.getReference();
+        StorageReference imageRef = storageRef.child(gcsImagePath);
+
+        Uri fileUri = Uri.fromFile(imageFile);
+        Log.d("FLAG", "File URI: " + fileUri.toString());
+        Log.d("FLAG", "Firebase Storage Path: " + imageRef.getPath());
+
+        imageRef.putFile(fileUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    Log.d("FLAG", "Upload successful");
+                    imageRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
+                        Log.d("FLAG", "Image uploaded successfully: " + downloadUri);
+                        createFirestoreDocument(word, downloadUri.toString(), onComplete);
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FLAG", "Upload failed", e);
+                    // Log more detailed information about the exception
+                    Log.e("FLAG", "Exception details: ", e);
+                    if (e instanceof StorageException) {
+                        StorageException storageException = (StorageException) e;
+                        Log.e("FLAG", "Error Code: " + storageException.getErrorCode());
+                        Log.e("FLAG", "HTTP Result Code: " + storageException.getHttpResultCode());
+                        Log.e("FLAG", "Detailed Error Message: " + storageException.getMessage());
+                    }
+                    onComplete.run();
+                });
+    }
+
+    private String normalizePath(String pathComponent) {
+        return pathComponent.replaceAll("\\s+", "_");
+    }
+
+    private byte[] readImageFileToByteArray(File file) {
+        try (InputStream inputStream = new FileInputStream(file);
+             ByteArrayOutputStream byteStream = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = inputStream.read(buffer)) != -1) {
+                byteStream.write(buffer, 0, len);
+            }
+            return byteStream.toByteArray();
+        } catch (IOException e) {
+            Log.e("FLAG", "Error reading image file", e);
+            return null;
+        }
+    }
+    private void createFirestoreDocument(Word word, String imageUrl, Runnable onComplete) {
+        // Get the current Firebase User
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            Log.e("FLAG", "No signed-in user found.");
+            onComplete.run();
+            return;
+        }
+
+        // Get email and username (username might be part of the displayName or a separate field)
+        String email = user.getEmail();
+        String username = user.getDisplayName(); // This could be null if not set
+
+        Map<String, Object> wordData = new HashMap<>();
+        wordData.put("Category", word.getCategory());
+        wordData.put("Subcategory", word.getSubcategory());
+        wordData.put("Item", word.getItem());
+        wordData.put("Description", word.getDescription());
+        wordData.put("Details", word.getDetails());
+        wordData.put("Difficulty", word.getDifficulty());
+        wordData.put("Image", imageUrl);
+        wordData.put("Email", email);
+        wordData.put("Username", username != null ? username : "Unknown");
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("cards").add(wordData)
+                .addOnSuccessListener(documentReference -> {
+                    Log.d("FLAG", "DocumentSnapshot added with ID: " + documentReference.getId());
+                    onComplete.run();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FLAG", "Error adding document", e);
+                    onComplete.run();
+                });
+    }
+
+    private void setInitialButtonState() {
+        toggleButtonColors(informationButton, languageButton, R.color.dark_green, R.color.dark_red);
+        editToLanguage.setEnabled(false);
+        editToLanguage.setBackgroundColor(ContextCompat.getColor(this, R.color.dark_gray));
+        editToLanguage.setTextColor(ContextCompat.getColor(this, R.color.light_gray));
+    }
+
+    private void setupSpinner() {
+        ArrayAdapter<CharSequence> arrayAdapter = new ArrayAdapter<CharSequence>(this, android.R.layout.simple_spinner_item, getResources().getStringArray(R.array.card_numbers)) {
+            @NonNull
+            @Override
+            public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                TextView view = (TextView) super.getView(position, convertView, parent);
+                // Set text color for selected item
+                view.setTextColor(getResources().getColor(R.color.black));
+                return view;
+            }
+
+            @Override
+            public View getDropDownView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                TextView view = (TextView) super.getDropDownView(position, convertView, parent);
+                view.setTextColor(getResources().getColor(R.color.black)); // Set text color for dropdown items
+                view.setBackgroundColor(getResources().getColor(R.color.white)); // Set background color for dropdown items
+                return view;
+            }
+        };
+        arrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerNumCards.setAdapter(arrayAdapter);
+        spinnerNumCards.setSelection(0, false);
+
+    }
+
+    private void setupListeners() {
+        setupFocusChangeListeners();
+        setupItemSelectedListener();
         setupButtonListeners();
-        // Initialize OkHttpClient
+    }
+
+    private void setupFocusChangeListeners() {
+        editgetAICategory.setOnFocusChangeListener((v, hasFocus) -> {
+            editgetAICategory.setHint(hasFocus ? "" : getString(R.string.original_category_hint));
+        });
+
+        editgetAISubcat.setOnFocusChangeListener((v, hasFocus) -> {
+            editgetAISubcat.setHint(hasFocus ? "" : getString(R.string.original_subcategory_hint));
+        });
+    }
+
+    private void setupItemSelectedListener() {
+        spinnerNumCards.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                // Your item selection logic here...
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Handle the case where nothing is selected, if necessary
+            }
+        });
+    }
+
+    private void setupButtonListeners() {
+        requestCardsButton.setOnClickListener(v -> {
+            //requestCardsButton.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green)));
+            requestCards();
+        });
+        fetchDataButton.setOnClickListener(v -> {
+            //fetchDataButton.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_purple)));
+            navigateToCardPairListActivity();
+        });
+        btnHome.setOnClickListener(v -> {
+            //btnHome.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
+            navigateToMainActivity();
+        });
+
+        informationButton.setOnClickListener(v -> onInformationButtonClick());
+        languageButton.setOnClickListener(v -> onLanguageButtonClick());
+    }
+    private void onInformationButtonClick() {
+        Log.d("FLAG", "Information Button Clicked");
+        textOption = "Information";
+        toggleButtonColors(informationButton, languageButton, R.color.dark_green, R.color.dark_red);
+        editToLanguage.setEnabled(false);
+        editToLanguage.setBackgroundColor(ContextCompat.getColor(this, R.color.dark_gray));
+        editToLanguage.setTextColor(ContextCompat.getColor(this, R.color.light_gray));
+        editToLanguage.setHintTextColor(ContextCompat.getColor(this, R.color.light_gray)); // Set hint text color to light gray
+
+        editgetAICategory.setHint("Choose Category"); // Set the hint text for Category
+        editgetAISubcat.setHint("Choose Subcategory"); // Set the hint text for Category
+
+
+        Log.d("FLAG", "Set text option to Information");
+    }
+
+    private void onLanguageButtonClick() {
+        Log.d("FLAG", "Language Button Clicked");
+        textOption = "Languages";
+        toggleButtonColors(languageButton, informationButton, R.color.dark_green, R.color.dark_red);
+        editToLanguage.setEnabled(true);
+        editToLanguage.setBackgroundColor(ContextCompat.getColor(this, R.color.white));
+        editToLanguage.setTextColor(ContextCompat.getColor(this, R.color.black));
+        editToLanguage.setHintTextColor(ContextCompat.getColor(this, R.color.black)); // Set hint text color
+
+        editgetAICategory.setHint("Choose from Language"); // Set the hint text for Category
+        editgetAISubcat.setHint("Choose Category"); // Chang ethe hint for subcat to cat in language case.
+
+
+        Log.d("FLAG", "Set text option to Languages");
+    }
+
+    private void toggleButtonColors(Button activeButton, Button inactiveButton, int activeColorResId, int inactiveColorResId) {
+        activeButton.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, activeColorResId)));
+        inactiveButton.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, inactiveColorResId)));
+    }
+
+    private void navigateToMainActivity() {
+        Intent intent = new Intent(GetAICardsActivity.this, MainActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
+    private void navigateToCardPairListActivity() {
+        Intent intent = new Intent(GetAICardsActivity.this, CardPairListActivity.class);
+        startActivity(intent);
+    }
+
+    private void initializeClient() {
         client = new OkHttpClient.Builder()
                 .readTimeout(3L, TimeUnit.MINUTES)
                 .connectTimeout(60L, TimeUnit.SECONDS)
                 .build();
     }
-
-    private void initializeDatabase() {
-        this.localdb = Room.databaseBuilder(
-                getApplicationContext(),
-                AppDatabase.class,
-                "SMARTFLASHDB.sqlite"
-        ).fallbackToDestructiveMigration().build();
-    }
-
-    private void setupViews() {
-        // Initialize all views
-        this.editgetAICategory = findViewById(R.id.editgetAICategory);
-        this.editgetAISubcat = findViewById(R.id.editgetAISubcat);
-        this.spinnerNumCards = findViewById(R.id.spinnerNumCards);
-
-        this.editToLanguage = findViewById(R.id.editToLanguage);
-        this.requestCardsButton = findViewById(R.id.requestCardsButton);
-        this.fetchDataButton = findViewById(R.id.fetchDataButton);
-
-        this.informationButton = findViewById(R.id.informationButton);
-
-        // ArrayAdapter setup
-        ArrayAdapter arrayAdapter = ArrayAdapter.createFromResource(
-                this,
-                R.array.card_numbers,
-                android.R.layout.simple_spinner_item
-        );
-        arrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        this.spinnerNumCards.setAdapter(arrayAdapter);
-        this.spinnerNumCards.setSelection(0, false); // Setting default without invoking listener
-
-        // Setting default background for editToLanguage to gray and disabling it
-        if (this.editToLanguage != null) {
-            this.editToLanguage.setBackgroundColor(ContextCompat.getColor(this, R.color.gray));
-            this.editToLanguage.setEnabled(false);
-        } else {
-            Log.e("Error", "editToLanguage is null");
-        }
-        if (this.informationButton != null) {
-            this.informationButton.setBackgroundColor(ContextCompat.getColor(this, R.color.dark_green));
-        } else {
-            Log.e("Error", "informationButton is null");
-        }
-
-    }
-
-    private void setupButtonListeners() {
-        informationButton.setOnClickListener(view -> {
-            textOption = "Information";
-            toggleButtons(informationButton, languageButton);
-
-            // Set editToLanguage to disabled and gray
-            if (editToLanguage != null) {
-                editToLanguage.setEnabled(false);
-                editToLanguage.setBackgroundColor(ContextCompat.getColor(this, R.color.gray));
-            }
-
-            // Reset hints to original values (you may need to adjust these strings)
-            if (editgetAICategory != null) {
-                editgetAICategory.setHint(R.string.original_category_hint);
-            }
-            if (editgetAISubcat != null) {
-                editgetAISubcat.setHint(R.string.original_subcategory_hint);
-            }
-        });
-
-        languageButton.setOnClickListener(view -> {
-            textOption = "Languages";
-            toggleButtons(languageButton, informationButton);
-
-            // Make editToLanguage visible, enabled, and white
-            if (editToLanguage != null) {
-                editToLanguage.setVisibility(View.VISIBLE);
-                editToLanguage.setEnabled(true);
-                editToLanguage.setBackgroundColor(ContextCompat.getColor(this, R.color.white));
-            }
-
-            // Change hints for EditText fields
-            if (editgetAICategory != null) {
-                editgetAICategory.setHint("From Language");
-            }
-            if (editgetAISubcat != null) {
-                editgetAISubcat.setHint("Choose a Topic");
-            }
-        });
-    }
-
-
-    private void toggleButtons(Button active, Button inactive) {
-        active.setBackgroundColor(getResources().getColor(R.color.dark_green)); // replace R.color.green with your green color resource id
-        inactive.setBackgroundColor(getResources().getColor(R.color.dark_red)); // replace R.color.red with your red color resource id
-        active.setTag("selected");
-        inactive.setTag("");
-    }
-
-    private void setupListeners() {
-        this.editgetAICategory.setOnClickListener(view -> {
-            // Replace with actual functionality
-        });
-        this.spinnerNumCards.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (position == 0) {
-                    ((TextView) parent.getChildAt(0)).setTextColor(Color.GRAY);
-                } else {
-                    // Your item selection logic here...
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
-
-        informationButton = findViewById(R.id.informationButton);
-        languageButton = findViewById(R.id.languageButton);
-        this.requestCardsButton.setOnClickListener(view -> requestCards());
-        this.fetchDataButton.setOnClickListener(view -> {
-            // Create an Intent to start CardPairListActivity
-            Intent intent = new Intent(this, CardPairListActivity.class);
-
-            // You can put extra data into the intent if needed
-            // intent.putExtra("key", value);
-
-            // Start the activity
-            startActivity(intent);
-        });
-
-
-        Button btnHome = findViewById(R.id.buttongetAIHome);
-
-        btnHome.setOnClickListener(view -> {
-            Intent intent = new Intent(GetAICardsActivity.this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // This flag ensures that if MainActivity is already open, it will be brought to the front
-            startActivity(intent);
-            finish(); // Optionally, if you want to remove the current activity from the back stack
-        });
-    }
-
-    private void configureButton(Button primaryButton, Button secondaryButton,
-                                 int primaryColorResId, int secondaryColorResId,
-                                 boolean setClickListener, String primaryText, String secondaryText) {
-        if (primaryButton != null) {
-            primaryButton.setBackgroundColor(ContextCompat.getColor(this, primaryColorResId));
-            primaryButton.setText(primaryText);
-            if (setClickListener) {
-                primaryButton.setOnClickListener(view -> {
-                    // Actual functionality
-                });
-            }
-        }
-
-        if (secondaryButton != null) {
-            secondaryButton.setBackgroundColor(ContextCompat.getColor(this, secondaryColorResId));
-            secondaryButton.setText(secondaryText);
-            if (setClickListener) {
-                secondaryButton.setOnClickListener(view -> {
-                    // Actual functionality
-                });
-            }
-        }
-    }
-
     // Your methods like `configureButton`, `requestCards` and `fetchData` would go below
     private String taskId;
     private FirebaseUser user;
     String username = "";
+    String email = "";
 
 
     private String latestPollingStatus = "Starting the preparation of cards..."; // Default initial status
@@ -331,39 +640,43 @@ public class GetAICardsActivity extends AppCompatActivity {
         if (this.appDb == null) this.appDb = AppDatabase.getInstance(getApplicationContext());
 
         if (this.user != null) {
-            Query query = this.db.collection("cards").whereEqualTo("Username", user.getDisplayName()).limit(100L);
+            String userEmail = user.getEmail(); // Retrieve user email
+            if (userEmail != null && !userEmail.isEmpty()) {
+                Query query = this.db.collection("cards").whereEqualTo("Email", userEmail).limit(100L);
 
-            showProgressDialog(); // Start showing the progress dialog
+                showProgressDialog(); // Start showing the progress dialog
 
-            query.get().addOnCompleteListener(task -> {
-                stopPolling(); // Ensure to stop polling once data fetch is complete
+                query.get().addOnCompleteListener(task -> {
+                    stopPolling(); // Ensure to stop polling once data fetch is complete
 
-                if (task.isSuccessful() && task.getResult() != null) {
-                    List<DocumentSnapshot> documents = task.getResult().getDocuments();
-                    List<AICard> aiCards = new ArrayList<>();
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        List<DocumentSnapshot> documents = task.getResult().getDocuments();
+                        List<AICard> aiCards = new ArrayList<>();
 
-                    for (DocumentSnapshot doc : documents) {
-                        AICard card = doc.toObject(AICard.class);
-                        if (card != null) aiCards.add(card);
+                        for (DocumentSnapshot doc : documents) {
+                            AICard card = doc.toObject(AICard.class);
+                            if (card != null) aiCards.add(card);
+                        }
+
+                        // Here, you can save these aiCards to your local Room database
+                        new Thread(() -> {
+                            appDb.aiCardDao().insertAll(aiCards.toArray(new AICard[0])); // Assuming you have an insertAll method in AICardDao
+                        }).start();
                     }
 
-                    // Here, you can save these aiCards to your local Room database
-                    new Thread(() -> {
-                        appDb.aiCardDao().insertAll(aiCards.toArray(new AICard[0])); // Assuming you have an insertAll method in AICardDao
-                    }).start();
-                }
-
-                // Handle any other onComplete logic if needed
-            });
+                    // Handle any other onComplete logic if needed
+                });
+            } else {
+                Toast.makeText(this, "Email address is not available", Toast.LENGTH_SHORT).show();
+            }
         } else {
             Toast.makeText(this, "User not found. Please log in again!", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // ... other methods ...
-
-    private String generateJson(String username, String category, String subcategory, int numCards, String cardType) {
+    private String generateJson(String email, String username, String category, String subcategory, int numCards, String cardType) {
         Map<String, Object> data = new HashMap<>();
+        data.put("email", email);
         data.put("username", username);
         data.put("category", category);
         data.put("subcategory", subcategory);
@@ -372,17 +685,6 @@ public class GetAICardsActivity extends AppCompatActivity {
 
         Log.d("FLAG", "request json textOption: " + cardType);
         return new Gson().toJson(data);
-    }
-
-    private void handleFailure(Exception exception) {
-        stopPolling();
-
-        if (this.progressDialog != null && this.progressDialog.isShowing()) {
-            this.progressDialog.dismiss();
-            this.messageHandler.removeCallbacksAndMessages(null);
-        }
-        Toast.makeText(this, "Failed to send request. Please try again!", Toast.LENGTH_SHORT).show();
-        Log.e("DEBUG", "Request failure", exception);
     }
 
     private boolean isNullOrBlank(String input) {
@@ -405,12 +707,11 @@ public class GetAICardsActivity extends AppCompatActivity {
             return false;
         }
     }
-
-    private void prepareAndSendRequest(String username, String category, String subCategory, String textOption) {
+    private void prepareAndSendRequest(String email, String username, String category, String subCategory, String textOption) {
         String numCardsSelected = this.spinnerNumCards.getSelectedItem().toString();
         // ... existing validation checks ...
 
-        String jsonString = generateJson(username, category, subCategory, Integer.parseInt(numCardsSelected), textOption);
+        String jsonString = generateJson(email, username, category, subCategory, Integer.parseInt(numCardsSelected), textOption);
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonString);
 
         showProgressDialog(); // Show progress dialog before sending the request
@@ -422,34 +723,69 @@ public class GetAICardsActivity extends AppCompatActivity {
         Log.d("FLAG", "Requesting Cards - user: " + firebaseUser);
         if (firebaseUser == null) return;
 
-        String displayName = firebaseUser.getDisplayName();
-        Log.d("FLAG", "Requesting Cards - user: " + displayName);
-        String category = getTextFromEditText(R.id.editgetAICategory);
-        String subCategory = getTextFromEditText(R.id.editgetAISubcat);
-
-
-        if ("selected".equals(this.informationButton.getTag())) {
-            textOption = "Information";
-        } else if ("selected".equals(this.languageButton.getTag())) {
-            textOption = "Languages";
-            category = "From " + category + " to " + getTextFromEditText(R.id.editToLanguage);
-            if (isNullOrBlank(category) || isNullOrBlank(subCategory)) {
-                showSnackbar("Please fill in both language fields.");
-                Log.d("FLAG", "Requesting Cards - return 1: " + displayName);
-                return;
-            }
-        } else {
-            setButtonColors(2131099734);
-            showSnackbar("Invalid text option selected.");
-            Log.d("FLAG", "Requesting Cards - return 2: " + displayName);
+        String userId = firebaseUser.getUid(); // Get the unique user ID
+        String email = firebaseUser.getEmail(); // Get the user email
+        if (email == null || email.isEmpty()) {
+            Toast.makeText(this, "User email not available", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (!isValidInput(category, "Maximum 5 words allowed for Category") || !isValidInput(subCategory, "Maximum 5 words allowed for Subcategory"))
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        DocumentReference userDocRef = db.collection("users").document(userId);
 
+        userDocRef.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                DocumentSnapshot document = task.getResult();
+                if (document != null && document.exists()) {
+                    String userName = document.getString("username"); // Fetch the userName from Firestore
+                    Log.d("FLAG", "Requesting Cards - user: " + userName + ", email: " + email);
+                    continueRequest(email, userName);
+                } else {
+                    Toast.makeText(this, "User data not found in Firestore", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "Failed to fetch user data", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    private void continueRequest(String email, String userName) {
+        Log.d("FLAG", "Continuing Request - User: " + userName + ", Email: " + email);
+        String category = getTextFromEditText(R.id.editgetAICategory);
+        String subCategory = getTextFromEditText(R.id.editgetAISubcat);
+        String numCardsSelected = spinnerNumCards.getSelectedItem().toString();
+
+        if (!isValidNumber(numCardsSelected)) {
+            Toast.makeText(this, "Please select a valid number of cards.", Toast.LENGTH_SHORT).show();
+            Log.d("FLAG", "Invalid number of cards selected");
             return;
+        }
+        Log.d("FLAG", "Text Option: " + textOption);
 
-        prepareAndSendRequest(displayName, category, subCategory, textOption);
+        if ("Information".equals(textOption)) {
+            Log.d("FLAG", "Information option selected");
+            // If Information is selected, use category and subcategory as they are
+        } else if ("Languages".equals(textOption)) {
+            Log.d("FLAG", "Languages option selected");
+            // If Languages is selected, modify category
+            category = "From " + category + " to " + getTextFromEditText(R.id.editToLanguage);
+            if (isNullOrBlank(category) || isNullOrBlank(subCategory)) {
+                showSnackbar("Please fill in both language fields.");
+                Log.d("FLAG", "Language fields validation failed");
+                return;
+            }
+        } else {
+            showSnackbar("Invalid text option selected.");
+            Log.d("FLAG", "Invalid text option selected");
+            return;
+        }
+
+        if (!isValidInput(category, "Maximum 5 words allowed for Category") || !isValidInput(subCategory, "Maximum 5 words allowed for Subcategory")) {
+            Log.d("FLAG", "Category or subcategory input validation failed");
+            return;
+        }
+
+        Log.d("FLAG", "Preparing and sending request");
+        prepareAndSendRequest(email, userName, category, subCategory, textOption);
     }
 
     private String getTextFromEditText(int editTextId) {
@@ -544,10 +880,10 @@ public class GetAICardsActivity extends AppCompatActivity {
     };
 
 
-    private void navigateToCardPairListActivity() {
-        Intent intent = new Intent(GetAICardsActivity.this, CardPairListActivity.class);
-        startActivity(intent);
-    }
+    //private void navigateToCardPairListActivity() {
+   //     Intent intent = new Intent(GetAICardsActivity.this, CardPairListActivity.class);
+    //    startActivity(intent);
+    //}
 
 
     private String extractStatus(String responseBody) {
@@ -573,21 +909,7 @@ public class GetAICardsActivity extends AppCompatActivity {
             messageHandler.postDelayed(messageUpdateRunnable, 5000); // Schedule next update
         }
     }
-
-    private void setButtonColors(int colorResourceId) {
-        int color = ContextCompat.getColor(this, colorResourceId);
-        this.requestCardsButton.setBackgroundColor(color);
-        this.fetchDataButton.setBackgroundColor(color);
-    }
-
-    private void setSelectedButtonColor(Button button, int colorResourceId) {
-        button.setBackgroundColor(ContextCompat.getColor(this, colorResourceId));
-    }
-
-    //private void showCategorySubcategoryDialog() {
-    //    new Thread(new GetAICardsActivity$$ExternalSyntheticLambda2(this, this.localdb.wordDao())).start();
-    //}
-    private void shutdownExecutorService() {
+     private void shutdownExecutorService() {
         if (this.executorService != null && !this.executorService.isShutdown()) {
             this.executorService.shutdown();
             try {
@@ -634,12 +956,6 @@ public class GetAICardsActivity extends AppCompatActivity {
             }
         }
     };
-    private boolean isTaskComplete(String responseBody) {
-        // Implement logic to parse the response body and check if the task is complete
-        // For example, check if a JSON field "status" is equal to "complete"
-        return false; // Replace with actual condition
-    }
-    //private AlertDialog progressDialog;
 
     private void showProgressDialog() {
         if (progressDialog == null) {
@@ -704,7 +1020,7 @@ public class GetAICardsActivity extends AppCompatActivity {
     private static final int GREEN_COLOR = -16711936;
     private static final int RED_COLOR = -65536;
     private static final float SNACKBAR_HEIGHT_PERCENTAGE = 0.3F;
-    private static final int SNACKBAR_MARGIN = 100;
+    private static final int SNACKBAR_MARGIN = 10;
 
     private void showSnackbar(String message) {
         Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG);
@@ -729,34 +1045,9 @@ public class GetAICardsActivity extends AppCompatActivity {
         view.setBackgroundTintList(ColorStateList.valueOf(color));
     }
 
-    private void updateButtonColors(Button button1, Button button2) {
-        button1.setBackgroundColor(GREEN_COLOR);
-        button2.setBackgroundColor(RED_COLOR);
-    }
-
-    private void updateEditTextHints(String hint1, String hint2) {
-        //EditText editText1 = findViewById(2131296553);
-        //EditText editText2 = findViewById(2131296555);
-
-        //editText1.setHint(hint1);
-        //editText2.setHint(hint2);
-    }
-
-    private void updateEditToLanguageBackgroundColor() {
-        int color;
-        if (!this.editToLanguage.isEnabled()) {
-            color = ContextCompat.getColor(this, R.color.white);
-        } else {
-            color = ContextCompat.getColor(this, R.color.gray);
-        }
-        this.editToLanguage.setBackgroundColor(color);
-    }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
         shutdownExecutorService();
     }
-
-
 }

@@ -11,6 +11,7 @@
         android:id="@+id/tvCategory"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textColor="@color/black"
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true" />
     <View
@@ -19,6 +20,7 @@
         android:layout_width="1.0dip"
         android:layout_height="20.0dip"
         android:layout_toRightOf="@+id/tvCategory"
+        android:textColor="@color/black"
         android:layout_centerVertical="true"
         android:layout_marginStart="8.0dip"
         android:layout_marginEnd="8.0dip" />
@@ -27,6 +29,7 @@
         android:id="@+id/tvSubcategory"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textColor="@color/black"
         android:layout_toRightOf="@id/separator"
         android:layout_centerVertical="true" />
     <TextView
@@ -34,6 +37,7 @@
         android:id="@+id/tvCardCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textColor="@color/black"
         android:text="0"
         android:layout_toLeftOf="@+id/selectionCircle"
         android:layout_centerVertical="true"

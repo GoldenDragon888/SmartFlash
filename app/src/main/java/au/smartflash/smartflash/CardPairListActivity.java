@@ -3,21 +3,29 @@ package au.smartflash.smartflash;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -28,7 +36,9 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -38,8 +48,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,9 +68,11 @@ import okhttp3.Response;
 //import au.smartflash.smartflash.model.AICard;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class CardPairListActivity extends AppCompatActivity implements CardPairsAdapter.OnCardClickListener {
+public class CardPairListActivity extends AppCompatActivity
+        implements CardPairsAdapter.OnCardClickListener, NavigationView.OnNavigationItemSelectedListener {
     private CardPairsAdapter adapter;
     private AppDatabase appDb;
     private CardPairsAdapter.OnCardClickListener cardClickListener;
@@ -77,10 +91,68 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
     private List<CategorySubcategoryPair> uniqueCardPairs = new ArrayList<>();
     private Map<CategorySubcategoryPair, Integer> cardCountMap = new HashMap<>();
 
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
 
+        if (id == R.id.nav_flashcards) {
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+            // handle action for 'Edit Card Records'
+        } else if (id == R.id.nav_edit_db) {
+            Intent intent = new Intent(this, EditDBActivity.class);
+            startActivity(intent);
+            // handle action for 'Edit Card Records'
+        } else if (id == R.id.nav_admin_activity) {
+            Intent intent = new Intent(this, AdminActivity.class);
+            startActivity(intent);
+            // handle action for 'Import Export .CSV'
+        } else if (id == R.id.nav_getai_activity) {
+            Intent intent = new Intent(this, GetAICardsActivity.class);
+            startActivity(intent);
+
+        } else if (id == R.id.nav_getpaipairs_activity) {
+            Intent intent = new Intent(this, CardPairListActivity.class);
+            startActivity(intent);
+            //}else if (id == R.id.user_registration) {
+            // handle action for 'User Registration'
+        } else if (id == R.id.nav_user_admin) {
+            Intent intent = new Intent(this, UserAdminActivity.class);
+            startActivity(intent);
+        } else if (id == R.id.nav_card_image) {
+            Intent intent = new Intent(this, ChooseCardFaceActivity.class);
+            startActivity(intent);
+        }
+
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_card_pairs);
+        // ... Initialize your UI elements ...
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        if (drawer != null) {
+            NavigationView navigationView = findViewById(R.id.nav_view);
+            if (navigationView != null) {
+                navigationView.setNavigationItemSelectedListener(this);
+            }
+
+            ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                    this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+            drawer.addDrawerListener(toggle);
+            // Set the color of the "hamburger" icon to white
+            toggle.getDrawerArrowDrawable().setColor(getResources().getColor(android.R.color.white));
+
+            toggle.syncState();
+        } else {
+            // Log an error or handle the case where the drawer is null
+        }
 
         recyclerView = findViewById(R.id.rvCardPairs); // Initialize the RecyclerView
 
@@ -101,12 +173,28 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
             userId = getIntent().getStringExtra("userId");
         }
 
+        Button btnDeleteSelected = findViewById(R.id.btnDeleteSelected);
+        btnDeleteSelected.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
+        btnDeleteSelected.setOnClickListener(v -> {
+            deleteSelectedCardPairs();
+        });
+        Button btnDownloadEdit = findViewById(R.id.btnDownloadEdit);
+        btnDownloadEdit.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green)));
+        btnDownloadEdit.setOnClickListener(v -> {
+            downloadandedit();
+        });
+        Button btnRefresh = findViewById(R.id.btnRefresh);
+        btnRefresh.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
+        btnRefresh.setOnClickListener(v -> {
+            refreshCardPairList();
+        });
         // Initialize onClickListeners
-        findViewById(R.id.btnDeleteSelected).setOnClickListener(v -> deleteSelectedCardPairs());
-        findViewById(R.id.btnDownloadEdit).setOnClickListener(v -> downloadandedit());
-        findViewById(R.id.btnRefresh).setOnClickListener(v -> refreshCardPairList());
+        //findViewById(R.id.btnDeleteSelected).setOnClickListener(v -> deleteSelectedCardPairs());
+        //findViewById(R.id.btnDownloadEdit).setOnClickListener(v -> downloadandedit());
+        //findViewById(R.id.btnRefresh).setOnClickListener(v -> refreshCardPairList());
 
         Button btnHome = findViewById(R.id.home_button);
+        btnHome.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange)));
 
         btnHome.setOnClickListener(view -> {
             Intent intent = new Intent(CardPairListActivity.this, MainActivity.class);
@@ -184,7 +272,6 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
         Snackbar.make(view, "Selected cards and images deleted!", -1).show();
     }
 
-
     private void dismissProgressDialog() {
         ProgressDialog progressDialog = this.progressDialogFetch;
         if (progressDialog != null && progressDialog.isShowing())
@@ -193,13 +280,20 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
 
     private void fetchData() {
         showProgressDialog("Fetching Data...");
+        cardCountMap.clear();
+        uniqueCardPairs.clear();
         this.listOfCardPairs.clear();
         FirebaseUser firebaseUser = this.user;
         if (firebaseUser != null) {
-            String username = firebaseUser.getDisplayName();
-            Query query = this.db.collection("cards").whereEqualTo("Username", username).limit(100L);
-            Log.d("FLAG", "CardPair Fetchdata: " + username + " : ");
-            query.get().addOnCompleteListener(this::handleFetchDataCompletion);
+            String email = firebaseUser.getEmail(); // Get user email
+            if (email != null && !email.isEmpty()) {
+                Query query = this.db.collection("cards").whereEqualTo("Email", email).limit(100L); // Update query to use email
+                Log.d("FLAG", "CardPair Fetchdata: " + email + " : ");
+                query.get().addOnCompleteListener(this::handleFetchDataCompletion);
+            } else {
+                Toast.makeText((Context) this, "Email address is not available", Toast.LENGTH_LONG).show();
+                dismissProgressDialog();
+            }
         } else {
             Toast.makeText((Context) this, "User not authenticated", Toast.LENGTH_LONG).show();
             dismissProgressDialog();
@@ -230,13 +324,22 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
         logUniqueCardPairs(cardCountMap, uniqueCardPairs);
         updateAdapterWithData(); // Update the adapter with the fetched data
     }
-
+    private void updateAdapterWithPairsAndCounts(List<CategorySubcategoryPair> pairs, Map<CategorySubcategoryPair, Integer> pairCountMap) {
+        // Assuming your adapter can accept and process the pair count map
+        runOnUiThread(() -> {
+            CardPairsAdapter adapter = (CardPairsAdapter) rvCardPairs.getAdapter();
+            if (adapter != null) {
+                adapter.updateList(pairs, pairCountMap);
+            }
+        });
+    }
     private void updateAdapterWithData() {
         if (adapter != null) {
-            adapter.updateList(uniqueCardPairs, cardCountMap);
+            // Ensure that uniqueCardPairs and cardCountMap are updated correctly
+            // before calling this method.
+            adapter.updateList(new ArrayList<>(uniqueCardPairs), cardCountMap);
         }
     }
-
     private void processDocumentSnapshot(DocumentSnapshot documentSnapshot,
                                          Map<CategorySubcategoryPair, Integer> cardCountMap,
                                          List<CategorySubcategoryPair> uniqueCardPairs) {
@@ -351,13 +454,21 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
     private void yourMethodFor2131296606() {
         // Your code
     }
-
     public void downloadandedit() {
+        // Show a warning dialog before starting the download process
+        new AlertDialog.Builder(this)
+                .setTitle("Warning")
+                .setMessage("WARNING - any changes made in the Cloud using the Web interface will overwrite the local card. Do you wish to proceed?")
+                .setPositiveButton("Yes", (dialog, which) -> startDownloadAndEditProcess())
+                .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+    private void startDownloadAndEditProcess() {
         ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Downloading data...");
         progressDialog.setCancelable(false);
         progressDialog.show();
-
         ExecutorService executor = Executors.newCachedThreadPool();
         CardPairsAdapter adapter = (CardPairsAdapter) rvCardPairs.getAdapter();
         if (adapter != null) {
@@ -366,103 +477,173 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
             AppDatabase localDb = AppDatabase.getInstance(getApplicationContext());
             CountDownLatch latch = new CountDownLatch(selectedPairs.size());
 
-            for (CategorySubcategoryPair pair : selectedPairs) {
-                    if (pair.getCategory() == null || pair.getSubcategory() == null) {
-                        Log.w("FLAG", "Category or Subcategory is null, skipping Firestore query for this pair.");
-                        latch.countDown(); // Ensure the latch is counted down for skipped pairs
-                        continue;
-                    }
+            Log.d("FLAG", "Starting download and edit process for " + selectedPairs.size() + " pairs.");
 
-                    Log.d("FLAG", "Querying Firestore for: Category=" + pair.getCategory() + ", Subcategory=" + pair.getSubcategory());
+            for (CategorySubcategoryPair pair : selectedPairs) {
+                if (pair.getCategory() == null || pair.getSubcategory() == null) {
+                    Log.w("FLAG", "Category or Subcategory is null, skipping Firestore query for this pair.");
+                    latch.countDown(); // Ensure the latch is counted down for skipped pairs
+                    continue;
+                }
+
+                Log.d("FLAG", "Querying Firestore for: Category=" + pair.getCategory() + ", Subcategory=" + pair.getSubcategory());
                 db.collection("cards")
                         .whereEqualTo("Category", pair.getCategory())
                         .whereEqualTo("Subcategory", pair.getSubcategory())
                         .get()
                         .addOnSuccessListener(querySnapshot -> {
                             executor.execute(() -> {
-                                processQuerySnapshot(querySnapshot, localDb, latch); // Updated method call
+                                Log.d("FLAG", "Processing query snapshot for Category=" + pair.getCategory() + ", Subcategory=" + pair.getSubcategory());
+                                processQuerySnapshot(querySnapshot, localDb, latch);
                             });
                         })
                         .addOnFailureListener(e -> {
+                            Log.e("FLAG", "Error querying Firestore: " + e.getMessage());
                             latch.countDown();
                         });
-                }
+            }
 
-            // Run waiting for latch in a separate thread to avoid blocking the executor
             new Thread(() -> {
                 try {
+                    Log.d("FLAG", "Awaiting latch...");
                     latch.await();
+                    Log.d("FLAG", "Latch released, continuing execution.");
                 } catch (InterruptedException e) {
+                    Log.e("FLAG", "Thread interrupted while waiting on latch: " + e.getMessage());
                     Thread.currentThread().interrupt();
+                } finally {
+                    // Ensure dialog is dismissed even if an exception occurs
+                    runOnUiThread(() -> {
+                        if (progressDialog.isShowing()) {
+                            progressDialog.dismiss();
+                            Log.d("FLAG", "ProgressDialog dismissed.");
+                        }
+                    });
                 }
 
-                progressDialog.dismiss();
                 runOnUiThread(() -> {
+                    Log.d("FLAG", "Starting EditDBActivity");
                     Intent intent = new Intent(CardPairListActivity.this, EditDBActivity.class);
                     startActivity(intent);
                 });
             }).start();
-        } else {
-            progressDialog.dismiss();
         }
     }
+
     private void processQuerySnapshot(QuerySnapshot querySnapshot, AppDatabase localDb, CountDownLatch latch) {
-        Log.d("FLAG", "In processQuerySnapshot");
+        Log.d("FLAG", "In processQuerySnapshot with " + querySnapshot.size() + " documents.");
 
         if (querySnapshot.isEmpty()) {
-            latch.countDown(); // Immediately count down if there are no documents
+            Log.d("FLAG", "QuerySnapshot is empty, counting down latch and returning.");
+            latch.countDown();
             return;
         }
 
         for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
-            AICard aiCard = new AICard();
-            //AICard aiCard = documentSnapshot.toObject(AICard.class);
-            aiCard.setCategoryAi(documentSnapshot.getString("Category"));
-            aiCard.setSubcategoryAi(documentSnapshot.getString("Subcategory"));
-            aiCard.setItemAi(documentSnapshot.getString("Item"));
-            aiCard.setDescriptionAi(documentSnapshot.getString("Description"));
-            aiCard.setDetailsAi(documentSnapshot.getString("Details"));
-            aiCard.setImageUrlAi(documentSnapshot.getString("Image"));
-            //aiCard.setItemAi(documentSnapshot.getString("Item"));
-
-            Log.d("FLAG", "AICard Data: " + aiCard.toString());
-
-            if (aiCard != null) {
-                boolean isDuplicate = localDb.wordDao().wordExists(aiCard.getItemAi(), aiCard.getDescriptionAi()) > 0;
-                if (!isDuplicate) {
-                    Log.d("FLAG", "AICard Data Item: " + aiCard.getItemAi());
-                    Word wordEntry = new Word();
-                    wordEntry.setCategory(aiCard.getCategoryAi());
-                    wordEntry.setSubcategory(aiCard.getSubcategoryAi());
-                    wordEntry.setItem(aiCard.getItemAi());
-                    wordEntry.setDescription(aiCard.getDescriptionAi());
-                    wordEntry.setDetails(aiCard.getDetailsAi());
-                    wordEntry.setDifficulty("Easy");
-                    // Set other fields from aiCard...
-
-                    File imageFile = new File(getExternalFilesDir(null), "Images/" + aiCard.getCategoryAi() + "/" + aiCard.getSubcategoryAi() + "/" + aiCard.getItemAi() + ".png");
-                    if (!imageFile.getParentFile().exists()) {
-                        imageFile.getParentFile().mkdirs(); // Create directories if they do not exist
-                    }
-
-                    // Download the image in the background and then insert the word into the database
-                    downloadImage(aiCard.getImageUrlAi(), imageFile, () -> {
-                        localDb.wordDao().insertWord(wordEntry);
-                        Log.d("FLAG", "processQuerySnapshot Inserted: " + wordEntry.getItem());
-                        if (querySnapshot.getDocuments().indexOf(documentSnapshot) == querySnapshot.size() - 1) {
-                            exportDataToCSV(aiCard.getCategoryAi(), aiCard.getSubcategoryAi());
-                        }
-                        latch.countDown(); // Count down after processing each document
-                    });
-                } else {
-                    if (querySnapshot.getDocuments().indexOf(documentSnapshot) == querySnapshot.size() - 1) {
-                        exportDataToCSV(aiCard.getCategoryAi(), aiCard.getSubcategoryAi());
-                    }
-                    latch.countDown(); // Count down if it's a duplicate
-                }
+            Word newWord = convertDocumentToWord(documentSnapshot);
+            if (newWord != null) {
+                localDb.wordDao().insert(newWord); // Insert the word without checking for duplicates
+                Log.d("FLAG", "Word inserted: " + newWord.getItem());
             }
         }
+
+        latch.countDown();
+        Log.d("FLAG", "Exiting processQuerySnapshot");
     }
+
+
+    private Word convertDocumentToWord(DocumentSnapshot documentSnapshot) {
+        if (documentSnapshot == null || !documentSnapshot.exists()) {
+            Log.e("FLAG", "Invalid DocumentSnapshot");
+            return null;
+        }
+
+        Word word = new Word();
+        // Set fields from the document snapshot
+        word.setCategory(documentSnapshot.getString("Category"));
+        word.setSubcategory(documentSnapshot.getString("Subcategory"));
+        word.setItem(documentSnapshot.getString("Item"));
+        word.setDescription(documentSnapshot.getString("Description"));
+        word.setDetails(documentSnapshot.getString("Details"));
+        word.setDifficulty(documentSnapshot.getString("Difficulty"));
+
+        String imageUrl = documentSnapshot.getString("Image");
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            word.setImage(downloadAndSaveImage(imageUrl, word));
+        }
+
+        return word;
+    }
+
+    private byte[] downloadAndSaveImage(String imageUrl, Word word) {
+        try {
+            URL url = new URL(imageUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setDoInput(true);
+            connection.connect();
+
+            InputStream input = connection.getInputStream();
+            File destinationFile = generateImagePath(word);
+
+            if (!destinationFile.getParentFile().exists()) {
+                destinationFile.getParentFile().mkdirs();
+            }
+
+            OutputStream output = new FileOutputStream(destinationFile);
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = input.read(buffer)) != -1) {
+                output.write(buffer, 0, bytesRead);
+            }
+
+            output.close();
+            input.close();
+
+            return convertFileToByteArray(destinationFile);
+        } catch (IOException e) {
+            Log.e("FLAG", "Error downloading image: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private byte[] convertFileToByteArray(File file) {
+        try (FileInputStream fis = new FileInputStream(file);
+             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                bos.write(buffer, 0, bytesRead);
+            }
+            return bos.toByteArray();
+        } catch (IOException e) {
+            Log.e("FLAG", "Error converting file to byte array", e);
+            return null;
+        }
+    }
+
+    private boolean hasDuplicate(AppDatabase localDb, Word newWord) {
+        int count = localDb.wordDao().countWordsByCategorySubcategoryItemetc(
+                newWord.getCategory(),
+                newWord.getSubcategory(),
+                newWord.getItem(),
+                newWord.getDescription(),
+                newWord.getDetails()
+        );
+        return count > 0;
+    }
+    private File generateImagePath(Word word) {
+        String category = word.getCategory() != null ? word.getCategory() : "unknown";
+        String subcategory = word.getSubcategory() != null ? word.getSubcategory() : "unknown";
+        return new File(getExternalFilesDir(null), "Images/" + category + "/" + subcategory + "/" + word.getItem() + ".png");
+    }
+
+    private void checkForExportAndCountDown(AICard aiCard, int documentIndex, int totalDocuments, CountDownLatch latch) {
+        if (documentIndex == totalDocuments - 1) {
+            exportDataToCSV(aiCard.getCategoryAi(), aiCard.getSubcategoryAi());
+        }
+        latch.countDown();
+    }
+
     private void exportDataToCSV(String category, String subcategory) {
         File folder = new File(getExternalFilesDir(null), "CSV_DB_Backup");
         if (!folder.exists()) {
@@ -573,7 +754,9 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
         });
     }
     ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    private void downloadImage(String imageUrl, File imageFile, Runnable callback) {
+    private void downloadImage(String imageUrl, File imageFile, Runnable onComplete) {
+        Log.d("FLAG", "Starting image download: " + imageUrl);
+
         executorService.execute(() -> {
             try {
                 URL url = new URL(imageUrl);
@@ -593,80 +776,102 @@ public class CardPairListActivity extends AppCompatActivity implements CardPairs
                 output.close();
                 input.close();
                 Log.d("Image Download", "Image saved to " + imageFile.getPath());
-                if (callback != null) {
-                    callback.run();
-                }
             } catch (IOException e) {
-                Log.e("Image Download", "Error while downloading the image.", e);
+                Log.e("Image Download", "Error while downloading the image: " + imageUrl, e);
+            } finally {
+                if (onComplete != null) {
+                    onComplete.run();
+                }
             }
         });
     }
-    private void refreshCardPairList() {
-        ProgressDialog progressDialog = new ProgressDialog(this);
+    //private ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private boolean isRefreshing = false;
+    private ProgressDialog progressDialog;
+
+    private void initProgressDialog() {
+        progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Refreshing data...");
         progressDialog.setCancelable(false);
-        progressDialog.show();
-        Log.d("FLAG", "Refreshing CardPairList");
+    }
 
+    private void refreshCardPairList() {
+        if (isRefreshing) {
+            Log.d("FLAG", "Already refreshing, ignoring this call.");
+            return;
+        }
+
+        isRefreshing = true;
+        if (progressDialog == null) {
+            initProgressDialog();
+        }
+        progressDialog.show();
+        // Clear existing data before refreshing
+        cardCountMap.clear();
+        uniqueCardPairs.clear();
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            handleRefreshCompletion("User not authenticated");
+            return;
+        }
+
+        String userEmail = currentUser.getEmail();
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         CardPairsAdapter adapter = (CardPairsAdapter) rvCardPairs.getAdapter();
-        if (adapter != null) {
-            List<CategorySubcategoryPair> currentPairs = adapter.getPairs();
-
-            Executor executor = Executors.newSingleThreadExecutor();
-            executor.execute(() -> {
-                CountDownLatch latch = new CountDownLatch(currentPairs.size());
-
-                for (CategorySubcategoryPair pair : currentPairs) {
-                    // Logic to fetch new data for each pair...
-                    db.collection("cards")
-                            .whereEqualTo("Category", pair.getCategory())
-                            .whereEqualTo("Subcategory", pair.getSubcategory())
-                            .get()
-                            .addOnSuccessListener(querySnapshot -> {
-                                List<CategorySubcategoryPair> newPairs = processQuerySnapshotToPairs(querySnapshot); // You need to implement this
-                                runOnUiThread(() -> adapter.updatePairs(newPairs));
-                                latch.countDown();
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e("FLAG", "Error refreshing data", e);
-                                latch.countDown();
-                            });
-                }
-
-                try {
-                    latch.await();
-                    // Final UI changes should be run on the main thread
-                    runOnUiThread(() -> {
-                        progressDialog.dismiss();
-                        // You do not need to call notifyDataSetChanged here since it's called inside updatePairs method.
-                    });
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    runOnUiThread(progressDialog::dismiss);
-                }
-            });
-        } else {
-            progressDialog.dismiss();
-            Toast.makeText(this, "Adapter not initialized", Toast.LENGTH_SHORT).show();
+        if (adapter == null) {
+            handleRefreshCompletion("Adapter not initialized");
+            return;
         }
+
+        db.collection("cards")
+                .whereEqualTo("Email", userEmail)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    cardCountMap.clear();
+                    uniqueCardPairs.clear();
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        processDocumentSnapshot(document, cardCountMap, uniqueCardPairs);
+                    }
+                    logUniqueCardPairs(cardCountMap, uniqueCardPairs);
+                    runOnUiThread(() -> adapter.updateList(new ArrayList<>(uniqueCardPairs), cardCountMap));
+                    handleRefreshCompletion(null); // No error message
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FLAG", "Error refreshing data", e);
+                    handleRefreshCompletion("Error refreshing data");
+                });
+    }
+
+    private void handleRefreshCompletion(String errorMessage) {
+        runOnUiThread(() -> {
+            progressDialog.dismiss();
+            isRefreshing = false;
+            if (errorMessage != null) {
+                Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
     private List<CategorySubcategoryPair> processQuerySnapshotToPairs(QuerySnapshot querySnapshot) {
-        List<CategorySubcategoryPair> pairs = new ArrayList<>();
+        Map<CategorySubcategoryPair, Integer> pairCountMap = new HashMap<>();
 
         if (querySnapshot != null) {
             for (DocumentSnapshot document : querySnapshot.getDocuments()) {
-                // Assuming the document contains fields 'category' and 'subcategory'
                 String category = document.getString("Category");
                 String subcategory = document.getString("Subcategory");
                 if (category != null && subcategory != null) {
-                    pairs.add(new CategorySubcategoryPair(category, subcategory));
-                    // If you have a count or other fields, add them here.
+                    CategorySubcategoryPair newPair = new CategorySubcategoryPair(category, subcategory);
+                    pairCountMap.put(newPair, pairCountMap.getOrDefault(newPair, 0) + 1);
                 }
             }
         }
-        return pairs;
+
+        // Now you have unique pairs with their counts in pairCountMap
+        // You need to pass this map to your adapter, not just the list of pairs
+        updateAdapterWithPairsAndCounts(new ArrayList<>(pairCountMap.keySet()), pairCountMap);
+        return new ArrayList<>(pairCountMap.keySet()); // Convert set back to list
     }
+
 
 
     private int generateUniqueId() {

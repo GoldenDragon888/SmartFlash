@@ -3,15 +3,18 @@ package au.smartflash.smartflash;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
@@ -24,6 +27,7 @@ import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
+import android.util.TypedValue;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -65,6 +69,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -116,6 +121,7 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     Button buttonCategory;
     Button buttonDifficulty;
     Button buttonSubcat;
+    Button buttonEdit;
     List<String> categoriesList = new ArrayList<String>();
     private int categoryCount = 0;
     private Word currentAudio;
@@ -184,18 +190,40 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     private static final String PREFS_USER_NAME = "UserPrefs";
     private static final String PREF_EMAIL = "EmailKey";
     private static final String PREF_PASSWORD = "PasswordKey";
-
+    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 101;
+    private void requestRecordAudioPermission() {
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.RECORD_AUDIO},
+                REQUEST_RECORD_AUDIO_PERMISSION);
+    }
+    private ActivityResultLauncher<Intent> editActivityResultLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        auth = FirebaseAuth.getInstance();
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this);
 
-        initializeDatabase();
+        Button buttonDifficulty = findViewById(R.id.button_difficulty); // replace with your button ID
+        buttonDifficulty.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
+        Button buttonCategory = findViewById(R.id.button_category); // replace with your button ID
+        buttonCategory.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
+        Button buttonSubcat = findViewById(R.id.button_subcat); // replace with your button ID
+        buttonSubcat.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
 
-        uniqueCategories = wordDao.getUniqueCategories();
+        Button buttonPlay = findViewById(R.id.play_button); // replace with your button ID
+        buttonPlay.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green)));
+        Button buttonStop = findViewById(R.id.stop_button); // replace with your button ID
+        buttonStop.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
+        Button buttonBack = findViewById(R.id.back_button); // replace with your button ID
+        buttonBack.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange)));
+        Button buttonNext = findViewById(R.id.next_button); // replace with your button ID
+        buttonNext.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange)));
+        Button buttonRecord = findViewById(R.id.record_button); // replace with your button ID
+        buttonRecord.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
+
 
         // Initialize SharedPreferences
         prefs = getSharedPreferences("YourAppPreferences", MODE_PRIVATE);
@@ -216,30 +244,63 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         toggle.getDrawerArrowDrawable().setColor(getResources().getColor(android.R.color.white));
         toggle.syncState();
 
+        auth = FirebaseAuth.getInstance();
+
         // Check if user is signed in (non-null)
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser == null) {
             // No user is signed in, redirect to UserAdminActivity
             startActivity(new Intent(this, UserAdminActivity.class));
             finish();  // Optional: Close the MainActivity
-        } else {
-            setupSubcategoriesMap();
-            //initDatabase();
-            initViews();
-            initializeUIComponents();
+            return; // Prevent further execution
+        }
 
-            setOnClickListeners();
-            initializeDataObservers();
-            loadMappingsFromDatabase();
-            loadWordsIfNeeded();
-            retrievePreferences();
-            updateUI();
-            updateButtonStates(difficulty);
-            // Check and request storage permissions
-            if (!checkStoragePermissions()) {
-                requestForStoragePermissions();
-            }
+        // Initialize the database and load unique categories
+        initializeDatabase();
+        uniqueCategories = wordDao.getUniqueCategories();
+
+        setupSubcategoriesMap();
+        //initDatabase();
+        initViews();
+        initializeUIComponents();
+        setOnClickListeners();
+        initializeDataObservers();
+        loadMappingsFromDatabase();
+        retrievePreferences();
+        updateUI();
+        updateButtonStates(difficulty);
+        checkAndRequestAudioPermissions();
+
+        // Check and request storage permissions
+        if (!checkStoragePermissions()) {
+            requestForStoragePermissions();
+        }
+        // Initialize Edit Activity Launcher
+        // Initialize Edit Activity Launcher
+        editActivityResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        Intent data = result.getData();
+                        if (data != null && data.hasExtra("updatedWord")) {
+                            Word updatedWord = (Word) data.getSerializableExtra("updatedWord");
+                            currentWord = updatedWord; // Update currentWord with the updated one
+                            updateWordDisplay(updatedWord); // Update UI with the updated word
+                        }
+                    }
+                });
+        // Check if there is an updated word from EditDBActivity
+        if (getIntent().hasExtra("updatedWord")) {
+            Word updatedWord = (Word) getIntent().getSerializableExtra("updatedWord");
+            updateWordDisplay(updatedWord); // displayWord method should update the UI based on the Word object
+        } else {
+            loadWordsIfNeeded(); // Regular initialization if there's no data from EditDBActivity
             showNextFlashcard();
+        }
+
+        // Check for RECORD_AUDIO permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
         }
     }
     private static final int REQUEST_STORAGE_PERMISSION = 1000;
@@ -249,24 +310,24 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
                 == PackageManager.PERMISSION_GRANTED;
     }
     private static final int RECORD_AUDIO_REQUEST_CODE = 101;
+    private static final int EDIT_REQUEST_CODE = 1; // Define a unique request code
 
-    private void requestRecordAudioPermission() {
-        ActivityCompat.requestPermissions(this,
-                new String[]{Manifest.permission.RECORD_AUDIO},
-                RECORD_AUDIO_REQUEST_CODE);
+
+    private void checkAndRequestAudioPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_REQUEST_CODE);
+        }
     }
+
     @Override
+
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
         if (requestCode == RECORD_AUDIO_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted, you can start recording
-                String audioFilePath = getAudioFilePath(currentWord.getItem());
-                startRecordingToFile(audioFilePath);
+                // Permission was granted, you can start audio recording
             } else {
-                // Permission denied, show rationale or handle accordingly
-                Toast.makeText(this, "Record audio permission denied", Toast.LENGTH_SHORT).show();
+                // Permission was denied, handle the failure
             }
         }
     }
@@ -434,9 +495,12 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         btnEasy = findViewById(R.id.btnEasy);
         btnMedium = findViewById(R.id.btnMedium);
         btnHard = findViewById(R.id.btnHard);
+
         buttonCategory = findViewById(R.id.button_category);
         buttonSubcat = findViewById(R.id.button_subcat);
         buttonDifficulty = findViewById(R.id.button_difficulty);
+
+
         imageImageView = findViewById(R.id.image_showCard);
 
         frontCardContainer = findViewById(R.id.front_card_view);
@@ -484,21 +548,87 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             btnMedium.setOnClickListener(v -> showUpdateDifficultyDialog("Medium"));
             btnHard.setOnClickListener(v -> showUpdateDifficultyDialog("Hard"));
 
-            buttonCategory.setOnClickListener(v -> showCategorySelectionDialog());
-            buttonSubcat.setOnClickListener(v -> showSubcatSelectionDialog());
-            buttonDifficulty.setOnClickListener(v -> showDifficultySelectionDialog());
+        /*
+        Button buttonEdit = findViewById(R.id.buttonEdit); // replace with your button ID
+            if (buttonEdit != null) {
+                buttonEdit.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange)));
+                buttonEdit.setOnClickListener(v -> {
+                    if (currentWord != null) {
+                        Log.d("MainActivity", "Editing word: " + currentWord.toString());
 
-            findViewById(R.id.next_button).setOnClickListener(v -> handleNextButtonClick());
-            findViewById(R.id.back_button).setOnClickListener(v -> handlePreviousButtonClick());
+                        Intent intent = new Intent(MainActivity.this, EditDBActivity.class);
+                        intent.putExtra("word", currentWord); // Passing the currentWord
+                        startActivity(intent);
+                    } else {
+                        // Handle the case where there is no current word
+                        // For example, show a message to the user
+                        Toast.makeText(this, "No current word available", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else {
+                Log.e("MainActivity", "ButtonEdit is null");
+            }
 
-            findViewById(R.id.play_button).setOnClickListener(v -> playCurrentWordAudio());
-            findViewById(R.id.stop_button).setOnClickListener(v -> stopMediaPlayer());
-            audioCheckButton = findViewById(R.id.audio_check);
+         */
+        Button buttonEdit = findViewById(R.id.buttonEdit);
+        if (buttonEdit != null) {
+            buttonEdit.setOnClickListener(v -> {
+                updateWordDisplay(currentWord);  // Ensure the display is updated with the current word
 
-            findViewById(R.id.record_button).setOnClickListener(v -> {
-                Log.d("FLAG", "recordButton was clicked");
-                toggleRecording();
+                if (currentWord != null) {
+                    Intent intent = new Intent(MainActivity.this, EditDBActivity.class);
+                    intent.putExtra("word", currentWord);  // Pass the current word
+                    editActivityResultLauncher.launch(intent);
+                } else {
+                    Toast.makeText(MainActivity.this, "No current word available", Toast.LENGTH_SHORT).show();
+                }
             });
+        } else {
+            Log.e("MainActivity", "ButtonEdit is null");
+        }
+
+
+        buttonCategory.setOnClickListener(v -> {
+            buttonCategory.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
+            showCategorySelectionDialog();
+        });
+        buttonSubcat.setOnClickListener(v -> {
+            buttonCategory.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
+            showSubcatSelectionDialog();
+        });
+        buttonDifficulty.setOnClickListener(v -> {
+            buttonCategory.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
+            showDifficultySelectionDialog();
+        });
+        Button next_button = findViewById(R.id.next_button); // Ensure you have this reference
+        next_button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.dark_purple)));
+        next_button.setOnClickListener(v -> {
+            handleNextButtonClick();
+        });
+        Button back_button = findViewById(R.id.back_button); // Ensure you have this reference
+        back_button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.dark_purple)));
+        back_button.setOnClickListener(v -> {
+            handlePreviousButtonClick();
+        });
+        Button play_button = findViewById(R.id.play_button); // Ensure you have this reference
+        play_button.setOnClickListener(v -> {
+            play_button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.dark_green)));
+            playCurrentWordAudio();
+        });
+        Button stop_button = findViewById(R.id.stop_button); // Ensure you have this reference
+        stop_button.setOnClickListener(v -> {
+            stop_button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.dark_red)));
+            stopMediaPlayer();
+        });
+
+        audioCheckButton = findViewById(R.id.audio_check);
+
+        Button record_button = findViewById(R.id.record_button); // Ensure you have this reference
+        record_button.setOnClickListener(v -> {
+            record_button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.dark_red)));
+            Log.d("FLAG", "recordButton was clicked");
+            toggleRecording();
+        });
     }
 
     private void showUpdateDifficultyDialog(String difficulty) {
@@ -542,7 +672,7 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             difficulty = getRandomDifficulty();
         }
 
-        wordHistory.push(currentWord);
+        //wordHistory.push(currentWord);
         showNextFlashcard();
         updateButtonStates(difficulty); // Now this reflects the current or random difficulty
         updateCatSubcatDiffLabelsandCounts();
@@ -573,7 +703,13 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             Toast.makeText(MainActivity.this, "No previous word.", Toast.LENGTH_SHORT).show();
         }
     }
-
+    private void clearWordHistoryOnDifficultyChange(String newDifficulty) {
+        if (!difficulty.equals(newDifficulty)) {
+            wordHistory.clear();
+            Toast.makeText(MainActivity.this, "No previous records for this Difficulty", Toast.LENGTH_SHORT).show();
+        }
+        difficulty = newDifficulty; // Update the current difficulty
+    }
     private void playCurrentWordAudio() {
         if (currentWord == null) {
             // Handle the situation when the word is null
@@ -686,7 +822,8 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         File externalAppDir = getExternalFilesDir(null);
 
         // Construct the path for the audio directory
-        File audioDir = new File(externalAppDir, "Smartflash/Audio/" + selectedCategory + "/" + subcategory);
+        //File audioDir = new File(externalAppDir, "Smartflash/Audio/" + selectedCategory + "/" + subcategory);
+        File audioDir = new File(getExternalFilesDir(null), "Audio/" + selectedCategory + "/" + subcategory);
         Log.d("FLAG", "Audio Directory path: " + audioDir);
 
         // Check if the directory exists, if not, create it
@@ -697,46 +834,24 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
                 return null;
             }
         }
-
         // Construct the complete audio file path
+        //File audioFile = new File(audioDir, itemName + ".wav");
+        //String audioFilePath = audioFile.getAbsolutePath();
         File audioFile = new File(audioDir, itemName + ".wav");
         String audioFilePath = audioFile.getAbsolutePath();
 
         if (audioFilePath.length() == 0) {
-            audioCheckButton.setBackgroundColor(ContextCompat.getColor(this, R.color.dark_green));
+            ColorStateList selectedColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green));
+            audioCheckButton.setBackgroundTintList(selectedColor);
+            this.audioCheckButton.setText("Audio Exists");
         } else {
-            audioCheckButton.setBackgroundColor(ContextCompat.getColor(this, R.color.dark_red));
+            ColorStateList selectedColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red));
+            audioCheckButton.setBackgroundTintList(selectedColor);
+            //this.audioCheckButton.setText("No Audio Exists");
         }
 
         Log.d("FLAG", "Got audioFilePath Path: " + audioFilePath);
         return audioFilePath;
-    }
-
-
-    private int getAudioResId(String paramString) {
-        return getResources().getIdentifier(paramString, "raw", getPackageName());
-    }
-
-    private Uri getImageUriFromMediaStore(String paramString1, String paramString2) {
-        Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-        Cursor cursor = getContentResolver().query(uri, new String[] { "_id" }, "_display_name=? AND relative_path=?", new String[] { paramString2, paramString1 }, null);
-        if (cursor != null)
-            try {
-                if (cursor.moveToFirst()) {
-                    long l = cursor.getLong(cursor.getColumnIndexOrThrow("_id"));
-                    return ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, l);
-                }
-            } finally {
-                if (cursor != null)
-                    try {
-                        cursor.close();
-                    } finally {
-                        cursor = null;
-                    }
-            }
-        if (cursor != null)
-            cursor.close();
-        return null;
     }
 
     private void goToFirstRecord() {
@@ -876,8 +991,11 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     }
 
     private void refreshBasedOnCurrentSelections() {
+        clearWordHistoryOnDifficultyChange(difficulty); //added this so that if a new difficulty is chosen the word array gets cleared and it starts from zero.
         if ("All".equals(difficulty)) {
+
             loadWordsIfNeeded();
+
         } else {
             loadWordsForSpecificDifficulty();
         }
@@ -894,9 +1012,8 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     private void playAudio(String audioFilePath) {
         if (audioFilePath == null) {
             Log.d("FLAG", "audioFilePath is null");
-            //setAudioCheckButtonColor(2131099734);
-            audioCheckButton.setBackgroundColor(ContextCompat.getColor(this, R.color.dark_red));
-
+            ColorStateList selectedColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red));
+            audioCheckButton.setBackgroundTintList(selectedColor);
             return;
         }
 
@@ -919,20 +1036,20 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
                 mediaPlayer.start();
 
                 Log.d("FLAG", "Seems it found the word @...: " + audioFilePath + "File Size: " + file.length());
-                //setAudioCheckButtonColor(2131099733);
-                audioCheckButton.setBackgroundColor(ContextCompat.getColor(this, R.color.dark_green));
-
+                ColorStateList selectedColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green));
+                audioCheckButton.setBackgroundTintList(selectedColor);
+                this.audioCheckButton.setText("Audio Exists");
                 return;
             } catch (IOException e) {
                 Log.e("AUDIO PLAYBACK", "Failed to start audio playback", e);
             }
         }
-        //setAudioCheckButtonColor(2131099734);
-        audioCheckButton.setBackgroundColor(ContextCompat.getColor(this, R.color.dark_red));
-
+        ColorStateList selectedColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red));
+        audioCheckButton.setBackgroundTintList(selectedColor);
     }
 
     private void setAudioCheckButtonColor(int colorResId) {
+
         int color = ContextCompat.getColor(this, colorResId);
         runOnUiThread(() -> audioCheckButton.setBackgroundColor(color));
     }
@@ -1068,6 +1185,7 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             wordDao.updateWord(word);
 
             // Compute the audio file path and check for the existence of the file
+
             String audioFilePath = getAudioFilePath(word.getItem());
             File audioFile = new File(audioFilePath);
 
@@ -1075,6 +1193,7 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             runOnUiThread(() -> {
                 updateAudioButtonColor(audioFile);
                 currentWord = word;
+                wordHistory.push(currentWord);
                 updateUIComponents();
             });
         });
@@ -1137,12 +1256,18 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
 
     // Use the Generalized Dialog Method for Category, Subcategory, and Difficulty
     private void showCategorySelectionDialog() {
+        // Assuming 'categories' is the list of categories you are trying to sort
+        //List<String> categories = ...; // your code to fetch categories
+
+        // Remove null values from the list
+        categoriesList.removeIf(Objects::isNull);
         Collections.sort(categoriesList, String.CASE_INSENSITIVE_ORDER);
         showSelectionDialog("Choose a Category", categoriesList, this::handleSelectedCategory);
     }
 
     private void showSubcatSelectionDialog() {
         List<String> subcatList = categoryToSubcatMap.getOrDefault(selectedCategory, new ArrayList<>());
+        subcatList.removeIf(Objects::isNull);
         Collections.sort(subcatList, String.CASE_INSENSITIVE_ORDER);
         showSelectionDialog("Choose a Subcategory", subcatList, this::handleSelectedSubcat);
     }
@@ -1189,13 +1314,19 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         }).start();
     }
     private void startRecording() {
-        if (isInvalidCurrentWord()) return;
+        if (isInvalidCurrentWord()) {
+            Log.d("FLAG", "Current word is invalid. Aborting recording.");
+            return;
+        }
 
         String audioFilePath = getAudioFilePath(currentWord.getItem());
         File audioFile = new File(audioFilePath);
 
         if (!audioFile.exists()) {
-            createNewAudioFile(audioFile);
+            if (!createNewAudioFile(audioFile)) {
+                Log.e("FLAG", "Failed to create a new audio file. Aborting recording.");
+                return;
+            }
         }
 
         handleAudioFile(audioFile, audioFilePath);
@@ -1209,15 +1340,13 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         return false;
     }
 
-    private void createNewAudioFile(File audioFile) {
+    private boolean createNewAudioFile(File audioFile) {
         try {
-            if (audioFile.createNewFile()) {
-                Log.d("FLAG", "File created @" + audioFile.getPath());
-            } else {
-                Log.d("FLAG", "File not created, something went wrong");
-            }
+            audioFile.getParentFile().mkdirs(); // Create parent directories if they don't exist
+            return audioFile.createNewFile(); // Create the new file and return the result
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e("createNewAudioFile", "Error creating new audio file", e);
+            return false; // Return false if there was an error
         }
     }
 
@@ -1228,11 +1357,15 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             new AlertDialog.Builder(this)
                     .setTitle("File exists")
                     .setMessage("A file with the same name already exists. Do you want to overwrite it?")
-                    .setPositiveButton("Yes", (dialog, which) -> startRecordingToFile(audioFilePath))
+                    .setPositiveButton("Yes", (dialog, which) -> {
+                        audioFile.delete(); // Delete the existing file before starting a new recording
+                        startRecordingToFile(audioFilePath);
+                    })
                     .setNegativeButton("No", null)
                     .show();
         }
     }
+
     private void handlePermissionAndRecord(String audioFilePath) {
         if (hasRecordAudioPermission()) {
             startRecordingToFile(audioFilePath);
@@ -1242,43 +1375,41 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     }
 
     private void startRecordingToFile(String audioFilePath) {
-
         Log.d("FLAG", "startRecordingToFile called with filePath: " + audioFilePath);
-        this.isRecording = true;
-        Button button = (Button)findViewById(R.id.record_button);
-        button.setBackgroundColor(ContextCompat.getColor((Context)this, R.color.dark_green));
-        MediaRecorder mediaRecorder2 = this.recorder;
-        if (mediaRecorder2 != null) {
-            mediaRecorder2.reset();
+
+        // Reset and release any existing recorder
+        if (this.recorder != null) {
+            this.recorder.reset();
             this.recorder.release();
             this.recorder = null;
         }
-        File file = new File((new File(audioFilePath)).getParentFile().getAbsolutePath());
-        Log.d("FLAG", "FLAG Crashing here?");
-        if (!file.exists() && !file.mkdirs()) {
-            Log.e("FLAG", "Failed to create directory: " + file.getAbsolutePath());
-            return;
-        }
-        MediaRecorder mediaRecorder1 = new MediaRecorder();
-        this.recorder = mediaRecorder1;
-        mediaRecorder1.setAudioSource(MediaRecorder.AudioSource.MIC);
-        this.recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        this.recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
 
-        this.recorder.setOutputFile(audioFilePath);
+        // Initialize a new MediaRecorder instance
+        this.recorder = new MediaRecorder();
         try {
+            this.recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            this.recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+            this.recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+            this.recorder.setOutputFile(audioFilePath);
             this.recorder.prepare();
             this.recorder.start();
-            Toast toast = Toast.makeText((Context)this, "Recording Started", Toast.LENGTH_SHORT);
-            toast.setGravity(49, 0, 700);
-            toast.show();
-        } catch (IOException iOException) {
-            Log.e("FLAG", "Preparing or starting recorder failed", iOException);
+
+            this.isRecording = true;
+            updateButtonState(R.id.record_button, R.color.dark_green);
+            Toast.makeText(this, "Recording Started", Toast.LENGTH_SHORT).show();
+            Log.d("FLAG", "Recording started successfully");
+        } catch (IOException | IllegalStateException e) {
+            Log.e("FLAG", "Preparing or starting recorder failed", e);
             this.isRecording = false;
-            button.setBackgroundColor(ContextCompat.getColor((Context)this, R.color.dark_red));
+            updateButtonState(R.id.record_button, R.color.dark_red);
         }
     }
 
+    private void updateButtonState(int buttonId, int colorResId) {
+        Button button = findViewById(buttonId);
+        ColorStateList colorStateList = ColorStateList.valueOf(ContextCompat.getColor(this, colorResId));
+        button.setBackgroundTintList(colorStateList);
+    }
     private void stopRecording() {
         if (this.isRecording) {
             MediaRecorder mediaRecorder = this.recorder;
@@ -1287,7 +1418,10 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
                 mediaRecorder.stop();
                 this.recorder.release();
                 this.recorder = null;
-                ((Button)findViewById(R.id.record_button)).setBackgroundColor(ContextCompat.getColor((Context)this, R.color.dark_red));
+                //((Button)findViewById(R.id.record_button)).setBackgroundColor(ContextCompat.getColor((Context)this, R.color.dark_red));
+                ((Button)findViewById(R.id.record_button)).setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
+                setAudioCheckButtonColor(R.color.dark_green);
+
                 Toast toast = Toast.makeText((Context)this, "Recording Stopped", Toast.LENGTH_SHORT);
                 toast.setGravity(49, 0, 700);
                 toast.show();
@@ -1308,10 +1442,14 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
 
     private void updateAudioButtonColor(File paramFile) {
         if (paramFile != null && paramFile.length() != 0L) {
-            this.audioCheckButton.setBackgroundColor(ContextCompat.getColor((Context)this, R.color.dark_green));
+            //this.audioCheckButton.setBackgroundColor(ContextCompat.getColor((Context)this, R.color.dark_green));
+            ColorStateList selectedColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green));
+            audioCheckButton.setBackgroundTintList(selectedColor);
             this.audioCheckButton.setText("Audio Exists");
         } else {
-            this.audioCheckButton.setBackgroundColor(ContextCompat.getColor((Context)this, R.color.dark_red));
+            //this.audioCheckButton.setBackgroundColor(ContextCompat.getColor((Context)this, R.color.dark_red));
+            ColorStateList selectedColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red));
+            audioCheckButton.setBackgroundTintList(selectedColor);
             this.audioCheckButton.setText("No Audio");
         }
     }
@@ -1371,12 +1509,17 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         Log.d("FLAG", "Displayword setting null records: ");
     }
 
-    protected void onActivityResult(int paramInt1, int paramInt2, Intent paramIntent) {
-        super.onActivityResult(paramInt1, paramInt2, paramIntent);
-        if (paramInt1 == 1 && paramInt2 == -1)
-            paramIntent.getStringExtra("Word");
-    }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == EDIT_REQUEST_CODE && resultCode == RESULT_OK) {
+            if (data.hasExtra("updatedWord")) {
+                Word updatedWord = (Word) data.getSerializableExtra("updatedWord");
+                updateWordDisplay(updatedWord); // Method to update UI with the updated word
+            }
+        }
+    }
 
     private void initializeUIComponents() {
         this.externalDir = getExternalFilesDir(null);
@@ -1428,11 +1571,15 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
     }
 
     @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_edit_db) {
+        if (id == R.id.nav_flashcards) {
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+            // handle action for 'Edit Card Records'
+        } else if (id == R.id.nav_edit_db) {
             Intent intent = new Intent(this, EditDBActivity.class);
             startActivity(intent);
             // handle action for 'Edit Card Records'
@@ -1447,13 +1594,16 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         } else if (id == R.id.nav_getpaipairs_activity) {
             Intent intent = new Intent(this, CardPairListActivity.class);
             startActivity(intent);
-        }else if (id == R.id.user_registration) {
+        //}else if (id == R.id.user_registration) {
             // handle action for 'User Registration'
         } else if (id == R.id.nav_user_admin) {
             Intent intent = new Intent(this, UserAdminActivity.class);
             startActivity(intent);
         } else if (id == R.id.nav_card_image) {
             Intent intent = new Intent(this, ChooseCardFaceActivity.class);
+            startActivity(intent);
+        } else if (id == R.id.nav_user_notes) {
+            Intent intent = new Intent(this, UserNotes.class);
             startActivity(intent);
         }
 
@@ -1546,24 +1696,27 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
         }
     }
     private void resetButtonsToDefault() {
-        int defaultColor = ContextCompat.getColor(this, R.color.dark_red);
-        btnEasy.setBackgroundColor(defaultColor);
-        btnMedium.setBackgroundColor(defaultColor);
-        btnHard.setBackgroundColor(defaultColor);
+        ColorStateList defaultColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red));
+        btnEasy.setBackgroundTintList(defaultColor);
+        btnMedium.setBackgroundTintList(defaultColor);
+        btnHard.setBackgroundTintList(defaultColor);
     }
+
     private void setAllButtonsToSelected() {
-        int selectedColor = ContextCompat.getColor(this, R.color.dark_green);
-        btnEasy.setBackgroundColor(selectedColor);
-        btnMedium.setBackgroundColor(selectedColor);
-        btnHard.setBackgroundColor(selectedColor);
+        ColorStateList selectedColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green));
+        btnEasy.setBackgroundTintList(selectedColor);
+        btnMedium.setBackgroundTintList(selectedColor);
+        btnHard.setBackgroundTintList(selectedColor);
     }
+
     private void setButtonToSelected(String difficulty) {
-        int selectedColor = ContextCompat.getColor(this, R.color.dark_green);
+        ColorStateList selectedColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green));
         Button targetButton = getButtonForDifficulty(difficulty);
         if (targetButton != null) {
-            targetButton.setBackgroundColor(selectedColor);
+            targetButton.setBackgroundTintList(selectedColor);
         }
     }
+
     private Button getButtonForDifficulty(String difficulty) {
         Map<String, Button> difficultyButtonMap = new HashMap<>();
         difficultyButtonMap.put("Easy", btnEasy);

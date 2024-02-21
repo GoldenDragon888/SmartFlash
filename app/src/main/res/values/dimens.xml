@@ -1,3 +1,5 @@
 <resources>
     <dimen name="fab_margin">16dp</dimen>
+    <dimen name="dot_diameter">16dp</dimen>
+    <dimen name="right_margin">8dp</dimen>
 </resources>

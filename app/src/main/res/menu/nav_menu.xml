@@ -1,31 +1,29 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/nav_edit_db"
-        android:title="Edit Card Records" />
-
-    <item
-        android:id="@+id/nav_admin_activity"
-        android:title="Import Export .CSV" />
-
-    <item
-        android:id="@+id/nav_getai_activity"
-        android:title="Import AI Cards" />
-    <item
-        android:id="@+id/nav_getpaipairs_activity"
-        android:title="Download AICard Pairs" />
-
-    <item
-        android:id="@+id/user_registration"
-        android:title="User Registration" />
-
+        android:id="@+id/nav_flashcards"
+        android:title="Flashcards" />
     <item
         android:id="@+id/nav_user_admin"
         android:title="User Admin" />
-
+    <item
+        android:id="@+id/nav_edit_db"
+        android:title="Edit Card Records" />
+    <item
+        android:id="@+id/nav_getai_activity"
+        android:title="Create AI Cards" />
+    <item
+        android:id="@+id/nav_getpaipairs_activity"
+        android:title="Get your AICards" />
+    <item
+        android:id="@+id/nav_admin_activity"
+        android:title="Import Export .CSV" />
     <item
         android:id="@+id/nav_card_image"
         android:title="Get Card Image" />
+    <item
+        android:id="@+id/nav_user_notes"
+        android:title="USer Notes" />
 
     <!-- ... possibly other items ... -->
 

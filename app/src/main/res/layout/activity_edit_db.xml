@@ -1,30 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:background="@color/light_blue"
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/my_background_color"
+    android:id="@+id/drawer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
-    xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <!-- Main Content Layout -->
+    <RelativeLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- ImageView for the Header -->
     <ImageView
-        android:layout_gravity="start"
-        android:id="@id/textHeader"
-        android:layout_width="fill_parent"
-        android:layout_height="64.0dip"
-        android:layout_marginLeft="0.0dip"
-        android:src="@drawable/flashrocketimage"
-        android:scaleType="fitCenter"
-        app:layout_constraintBottom_toTopOf="@+id/editFields"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="45dp"
+        android:layout_alignParentTop="true"
+        android:src="@drawable/android_sfp_header"
+        android:scaleType="fitXY" />
+
+        <!-- Toolbar with Hamburger Icon -->
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="60dp"
+            android:layout_height="45dp"
+            android:background="@color/flash_blue"
+            app:popupTheme="@style/AppTheme.PopupOverlay" />
+
     <LinearLayout
-        android:orientation="vertical"
         android:id="@+id/editFields"
-        android:layout_width="fill_parent"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="0.0dip"
-        app:layout_constraintTop_toBottomOf="@id/textHeader"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent">
+        android:layout_below="@id/imageView">
+
         <androidx.cardview.widget.CardView
             android:layout_width="fill_parent"
             android:layout_height="36.0dip"
@@ -44,6 +55,7 @@
                     android:layout_width="fill_parent"
                     android:layout_height="40.0dip"
                     android:hint="New Category"
+                    android:textColor="@android:color/black"
                     android:textColorHint="@android:color/black"
                     android:lines="2"
                     android:inputType="textMultiLine"
@@ -72,6 +84,7 @@
                     android:layout_height="40.0dip"
                     android:hint="New Subcat"
                     android:textColorHint="@android:color/black"
+                    android:textColor="@android:color/black"
                     android:lines="2"
                     android:inputType="textMultiLine"
                     app:autoSizeMaxTextSize="24.0sp"
@@ -100,6 +113,7 @@
                     android:layout_height="40.0dip"
                     android:hint="Item"
                     android:textColorHint="@android:color/black"
+                    android:textColor="@android:color/black"
                     android:lines="2"
                     android:inputType="textMultiLine"
                     app:autoSizeMaxTextSize="24.0sp"
@@ -109,6 +123,7 @@
             </FrameLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- Description CardView -->
         <androidx.cardview.widget.CardView
             android:layout_width="fill_parent"
             android:layout_height="65.0dip"
@@ -117,30 +132,18 @@
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="10.0dip"
             app:cardElevation="5.0dip">
-
-            <FrameLayout
+            <EditText
+                android:id="@+id/editTextDescription"
                 android:layout_width="fill_parent"
-                android:layout_height="fill_parent">
-
-                <TextView
-                    android:gravity="center"
-                    android:textAlignment="center"
-                    android:paddingTop="8dp"
-                    android:paddingLeft="8dp"
-                    android:paddingRight="8dp"
-                    android:id="@+id/editTextDescription"
-                    android:layout_width="fill_parent"
-                    android:layout_height="65.0dip"
-                    android:text="Description"
-                    android:textColor="@android:color/black"
-                    android:lines="6"
-                    app:autoSizeMaxTextSize="24.0sp"
-                    app:autoSizeMinTextSize="12.0sp"
-                    app:autoSizeStepGranularity="2.0sp"
-                    app:autoSizeTextType="uniform" />
-            </FrameLayout>
+                android:layout_height="65.0dip"
+                android:gravity="center"
+                android:hint="Description"
+                android:background="@android:color/transparent"
+                android:padding="8dp"
+                android:textColor="@android:color/black" />
         </androidx.cardview.widget.CardView>
 
+        <!-- Details CardView -->
         <androidx.cardview.widget.CardView
             android:layout_width="fill_parent"
             android:layout_height="145.0dip"
@@ -149,28 +152,17 @@
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="10.0dip"
             app:cardElevation="5.0dip">
-            <FrameLayout
+            <EditText
+                android:id="@+id/editTextDetails"
                 android:layout_width="fill_parent"
-                android:layout_height="fill_parent">
-                <TextView
-                    android:gravity="center"
-                    android:textAlignment="center"
-                    android:paddingTop="8dp"
-                    android:paddingLeft="8dp"
-                    android:paddingRight="8dp"
-                    android:id="@+id/editTextDetails"
-                    android:layout_width="fill_parent"
-                    android:layout_height="140.0dip"
-                    android:text="Details"
-                    android:textColor="@android:color/black"
-                    android:lines="10"
-                    app:autoSizeMaxTextSize="24.0sp"
-                    app:autoSizeMinTextSize="11.0sp"
-                    app:autoSizeStepGranularity="2.0sp"
-                    app:autoSizeTextType="uniform" />
-
-            </FrameLayout>
+                android:layout_height="140.0dip"
+                android:gravity="center"
+                android:hint="Details"
+                android:background="@android:color/transparent"
+                android:padding="8dp"
+                android:textColor="@android:color/black" />
         </androidx.cardview.widget.CardView>
+
 
         <androidx.cardview.widget.CardView
             android:id="@+id/cardView"
@@ -195,42 +187,53 @@
                     android:padding="0dp"/>
             </FrameLayout>
         </androidx.cardview.widget.CardView>
-    </LinearLayout>
+
+
     <ImageView
         android:id="@+id/associated_image"
         android:background="?android:selectableItemBackground"
         android:focusable="true"
         android:clickable="true"
-        android:layout_width="wrap_content"
-        android:layout_height="150.0dip"
+        android:layout_width="match_parent"
+        android:layout_height="180.0dip"
         android:src="@drawable/smartflashnoimage"
         android:scaleType="fitCenter"
         android:layout_marginStart="16.0dip"
         android:layout_marginEnd="16.0dip"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/editFields" />
+        />
     <LinearLayout
         android:gravity="center"
         android:orientation="horizontal"
         android:id="@+id/catButtons"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="-5.0dip"
-        app:layout_constraintTop_toBottomOf="@id/associated_image"
+        android:layout_marginBottom="2dp"
+        android:layout_marginTop="8dp"
         app:layout_constraintBottom_toTopOf="@id/deletecatButtons"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent">
-        <Button
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
             android:id="@+id/buttonCategory"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="150dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="0dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
             android:text="Select Category"
-            android:backgroundTint="@color/flash_blue" />
-        <Button
+           />
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
             android:id="@+id/buttonSubcat"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="150dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="0dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
             android:text="Select Subcat"
             android:backgroundTint="@color/flash_blue" />
     </LinearLayout>
@@ -240,20 +243,30 @@
         android:id="@+id/deletecatButtons"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="-5.0dip"
+        android:layout_marginBottom="2dp"
         app:layout_constraintTop_toBottomOf="@+id/catButtons"
         app:layout_constraintBottom_toTopOf="@id/layoutButtons"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent">
-        <Button android:id="@+id/buttonDeleteCategory"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
+            android:id="@+id/buttonDeleteCategory"
+            android:layout_width="200dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
             android:text="Delete entire Category"
             android:backgroundTint="@color/dark_red" />
-        <Button
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
             android:id="@+id/buttonDeleteSubcat"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="200dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
             android:text="Delete entire Subcat"
             android:backgroundTint="@color/dark_red" />
     </LinearLayout>
@@ -263,53 +276,93 @@
         android:id="@+id/layoutButtons"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="-15.0dip"
+        android:layout_marginBottom="2dp"
         app:layout_constraintTop_toBottomOf="@id/deletecatButtons"
         app:layout_constraintBottom_toTopOf="@id/navButtons"
-
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent">
-        <Button
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
             android:id="@+id/buttonDelete"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
+            android:layout_marginBottom="0dp"
             android:text="Delete"
             android:backgroundTint="@color/dark_red" />
-        <Button android:id="@+id/buttonNew"
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
+            android:id="@+id/buttonNew"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
+            android:layout_marginBottom="0dp"
             android:text="New"
             android:backgroundTint="@color/dark_green" />
-        <Button android:id="@+id/buttonUpdate"
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
+            android:id="@+id/buttonUpdate"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
+            android:layout_marginBottom="0dp"
             android:text="Update"
             android:backgroundTint="@color/blue" />
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
+            android:id="@+id/cleanUpButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
+            android:layout_marginBottom="0dp"
+            android:text="X Nulls"
+            android:backgroundTint="@color/dark_red" />
     </LinearLayout>
     <LinearLayout
+        android:id="@+id/navButtons"
         android:gravity="center"
         android:orientation="horizontal"
-        android:id="@+id/navButtons"
-        android:layout_width="fill_parent"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/layoutButtons"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent">
-        <Button android:id="@+id/buttonBack"
+        android:layout_alignParentBottom="true">
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
+            android:id="@+id/buttonBack"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
+
             android:text="Back" />
-        <Button android:id="@+id/buttonHome"
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
+            android:id="@+id/buttonHome"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="8.0dip"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
+
             android:text="Home"
             android:backgroundTint="@color/orange" />
-        <Button
+        <com.google.android.material.button.MaterialButton
+            style="@style/CustomButtonStyle"
             android:id="@+id/buttonNext"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_marginLeft="3.0dip"
+            android:layout_marginRight="3.0dip"
+
             android:text="Next" />
     </LinearLayout>
 
@@ -400,6 +453,17 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
     </FrameLayout>
+    </LinearLayout>
+</RelativeLayout>
 
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Navigation Drawer -->
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/nav_view"
+        android:layout_width="200dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:fitsSystemWindows="true"
+        android:backgroundTint="@color/flash_blue"
+        app:itemTextColor="@color/white"
+        app:menu="@menu/nav_menu" />
+</androidx.drawerlayout.widget.DrawerLayout>

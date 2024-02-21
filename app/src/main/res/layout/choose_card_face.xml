@@ -90,7 +90,9 @@
     <Button
         android:id="@+id/chooseImageButton"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        style="@style/CustomButton"
+        android:layout_height="50dp"
+        android:layout_marginBottom="5dp"
         android:text="Choose Image"
         android:backgroundTint="@color/dark_blue"
         app:layout_constraintBottom_toTopOf="@id/cutIntoFourButton"
@@ -99,7 +101,9 @@
     <Button
         android:id="@+id/cutIntoFourButton"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        style="@style/CustomButton"
+        android:layout_height="50dp"
+        android:layout_marginBottom="5dp"
         android:text="Cut into 4 after pinch and zoom to 4 boxes"
         android:backgroundTint="@color/dark_green"
         app:layout_constraintBottom_toTopOf="@id/cardface_home_button"
@@ -108,7 +112,9 @@
     <Button
         android:id="@+id/cardface_home_button"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        style="@style/CustomButton"
+        android:layout_height="50dp"
+        android:layout_marginBottom="5dp"
         android:text="HOME"
         android:backgroundTint="@color/orange"
         app:layout_constraintBottom_toBottomOf="parent"

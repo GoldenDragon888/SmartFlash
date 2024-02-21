@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -14,6 +15,9 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -28,12 +32,17 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
@@ -44,7 +53,10 @@ import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.BaseRequestOptions;
 import com.bumptech.glide.request.RequestOptions;
+import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.snackbar.Snackbar;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -53,6 +65,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -61,7 +74,7 @@ import au.smartflash.smartflash.dao.WordDao;
 import au.smartflash.smartflash.db.AppDatabase;
 import au.smartflash.smartflash.model.Word;
 
-public class EditDBActivity extends AppCompatActivity {
+public class EditDBActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final int OVERLAY_PERMISSION_REQ_CODE = 9101;
     private static final int PERMISSION_REQUEST_CODE = 1001;
     private static final int PICK_IMAGE_REQUEST = 1001;
@@ -77,6 +90,7 @@ public class EditDBActivity extends AppCompatActivity {
     private ImageView imageView;
     private String selectedCategory = null;
     private Uri selectedImageUri;
+    private Uri selectedImage;
     private String selectedSubcategory = null;
     private Spinner spinnerCategory;
     private Spinner spinnerSubcategory;
@@ -101,6 +115,45 @@ public class EditDBActivity extends AppCompatActivity {
     private int previousPosition = 1; // Initializing it to 1 as a default value, so it defaults to "Easy" if nothing else is selected.
     private Spinner spinnerDifficulty;
     private ImageView associatedImage;
+    private ActionBarDrawerToggle toggle;
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
+
+            if (id == R.id.nav_flashcards) {
+                Intent intent = new Intent(this, MainActivity.class);
+                startActivity(intent);
+                // handle action for 'Edit Card Records'
+            } else if (id == R.id.nav_edit_db) {
+                Intent intent = new Intent(this, EditDBActivity.class);
+                startActivity(intent);
+                // handle action for 'Edit Card Records'
+            } else if (id == R.id.nav_admin_activity) {
+                Intent intent = new Intent(this, AdminActivity.class);
+                startActivity(intent);
+                // handle action for 'Import Export .CSV'
+            } else if (id == R.id.nav_getai_activity) {
+                Intent intent = new Intent(this, GetAICardsActivity.class);
+                startActivity(intent);
+
+            } else if (id == R.id.nav_getpaipairs_activity) {
+                Intent intent = new Intent(this, CardPairListActivity.class);
+                startActivity(intent);
+                //}else if (id == R.id.user_registration) {
+                // handle action for 'User Registration'
+            } else if (id == R.id.nav_user_admin) {
+                Intent intent = new Intent(this, UserAdminActivity.class);
+                startActivity(intent);
+            } else if (id == R.id.nav_card_image) {
+                Intent intent = new Intent(this, ChooseCardFaceActivity.class);
+                startActivity(intent);
+            }
+
+            DrawerLayout drawer = findViewById(R.id.drawer_layout);
+            drawer.closeDrawer(GravityCompat.START);
+            return true;
+        }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,25 +167,48 @@ public class EditDBActivity extends AppCompatActivity {
         Log.d("FLAG", "IN EditDBActivity before Room");
         db = Room.databaseBuilder(getApplicationContext(), AppDatabase.class, "SMARTFLASHDB.sqlite").build();
         wordDao = db.wordDao();
-/*
-        wordDao.getAllWords().observe(this, newWords -> {
-            // Update UI with the list of words
-            // For example, if you have a RecyclerView adapter, call something like:
-            adapter.updateData(newWords);
-        });
-*/
+
         initializeDirectories();
         initializeUIElements();
+
+        // Retrieve the Word object passed from MainActivity
+        Word word = (Word) getIntent().getSerializableExtra("word");
+        if (word != null) {
+            currentWord = word; // Set currentWord to the received word
+            displayWord(word); // Display the word in your UI
+        } else {
+            Log.e("EditDBActivity", "Received word is null");
+            // Handle the case where no word was passed, such as displaying an error message or closing the activity
+        }
+
     }
     @Override
     protected void onResume() {
         super.onResume();
         Log.d("FLAG", "onResume: currentWord = " + currentWord);
     }
-
     private void initializeUIElements() {
         // ... Initialize your UI elements ...
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        if (drawer != null) {
+            NavigationView navigationView = findViewById(R.id.nav_view);
+            if (navigationView != null) {
+                navigationView.setNavigationItemSelectedListener(this);
+            }
+
+            ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                    this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+            drawer.addDrawerListener(toggle);
+            // Set the color of the "hamburger" icon to white
+            toggle.getDrawerArrowDrawable().setColor(getResources().getColor(android.R.color.white));
+
+            toggle.syncState();
+        } else {
+            // Log an error or handle the case where the drawer is null
+        }
         spinnerDifficulty = findViewById(R.id.spinnerDifficulty);
 
         editTextCategory = findViewById(R.id.editTextCategory);  // Make sure the ID matches the one in your XML
@@ -140,79 +216,48 @@ public class EditDBActivity extends AppCompatActivity {
         editTextItem = findViewById(R.id.editTextItem);
 
         // Initialize the buttons
-        buttonDelete = findViewById(R.id.buttonDelete);
-        buttonNew = findViewById(R.id.buttonNew);
-        buttonUpdate = findViewById(R.id.buttonUpdate);
+        //Button buttonCategory = findViewById(R.id.buttonCategory); // replace with your button ID
+
+        Button buttonDelete = findViewById(R.id.buttonDelete);
+        buttonDelete.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
+        Button buttonNew = findViewById(R.id.buttonNew);
+        buttonNew.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green)));
+        Button buttonUpdate = findViewById(R.id.buttonUpdate);
+        buttonUpdate.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green)));
+        Button cleanUpButton = findViewById(R.id.cleanUpButton);
+        cleanUpButton.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
 
         // Set the click listeners
-        buttonDelete.setOnClickListener(view -> deleteCurrentWord());
+        buttonDelete.setOnClickListener(view -> showDeleteWordConfirmationDialog());
         buttonNew.setOnClickListener(view -> createNewWord());
         buttonUpdate.setOnClickListener(view -> updateCurrentWord());
+        cleanUpButton.setOnClickListener(v -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("Clean Up Categories")
+                    .setMessage("Do you want to remove all invalid category records?")
+                    .setPositiveButton("Yes", (dialog, which) -> {
+                        deleteNullCategories();
+                    })
+                    .setNegativeButton("No", null)
+                    .show();
+        });
 
-        frameOverlay = findViewById(R.id.frameOverlay);
-        editDescriptionContent = findViewById(R.id.editDescriptionContent);
         editTextDescription = findViewById(R.id.editTextDescription);
-        editTextDescription.setFocusableInTouchMode(false);
-        saveDescriptionEditButton = findViewById(R.id.saveDescriptionEditButton);
 
-        editTextDescription.setOnClickListener(view -> {
-            String currentText = editTextDescription.getText().toString();
-            if ("Description".equals(currentText)) {
-                editDescriptionContent.setText("");  // Clear the overlay input
-            } else {
-                editDescriptionContent.setText(currentText);
-            }
-            frameOverlay.setVisibility(View.VISIBLE);
-        });
-
-        saveDescriptionEditButton.setOnClickListener(view -> {
-            String newContent = editDescriptionContent.getText().toString();
-            if (TextUtils.isEmpty(newContent)) {
-                editTextDescription.setText("Description");  // Reset to hint if empty
-            } else {
-                editTextDescription.setText(newContent);
-            }
-            frameOverlay.setVisibility(View.GONE);
-        });
-
-        // Initialize the new UI components for the Details overlay
-        frameOverlayDetails = findViewById(R.id.frameOverlayDetails);
-        editDetailsContent = findViewById(R.id.editDetailsContent);
         editTextDetails = findViewById(R.id.editTextDetails);
-        saveDetailsEditButton = findViewById(R.id.saveDetailsEditButton);
-        buttonDeleteCategory = findViewById(R.id.buttonDeleteCategory);
-        buttonDeleteSubcat = findViewById(R.id.buttonDeleteSubcat);
-        editTextDetails.setFocusableInTouchMode(false);
+        //saveDetailsEditButton = findViewById(R.id.saveDetailsEditButton);
+        Button buttonDeleteCategory = findViewById(R.id.buttonDeleteCategory);
+        buttonDeleteCategory.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
+        Button buttonDeleteSubcat = findViewById(R.id.buttonDeleteSubcat);
+        buttonDeleteSubcat.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
 
-        // Set listeners for Details EditText and Save button
-        editTextDetails.setOnClickListener(view -> {
-            Log.d("FLAG", "OverlayDebug - Details text clicked");
-            String currentText = editTextDetails.getText().toString();
-            if ("Details".equals(currentText)) {
-                editDetailsContent.setText("");  // Clear the overlay input
-            } else {
-                editDetailsContent.setText(currentText);
-            }
-            frameOverlayDetails.setVisibility(View.VISIBLE);
-        });
-
-        saveDetailsEditButton.setOnClickListener(view -> {
-            Log.d("FLAG", "OverlayDebug - Save button clicked for Details");
-            String newContent = editDetailsContent.getText().toString();
-            if (TextUtils.isEmpty(newContent)) {
-                editTextDetails.setText("Details");  // Reset to hint if empty
-            } else {
-                editTextDetails.setText(newContent);
-            }
-            frameOverlayDetails.setVisibility(View.GONE);
-        });
 
         buttonDeleteCategory.setOnClickListener(v -> {
             String category = editTextCategory.getText().toString();
             if (!category.isEmpty()) {
                 deleteCategory(category);
             } else {
-                Toast.makeText(this, "No category specified", Toast.LENGTH_SHORT).show();
+                showSnackbar("No category specified");
             }
         });
 
@@ -222,7 +267,7 @@ public class EditDBActivity extends AppCompatActivity {
             if (!category.isEmpty() && !subcategory.isEmpty()) {
                 deleteSubcategory(category, subcategory);
             } else {
-                Toast.makeText(this, "No category or subcategory specified", Toast.LENGTH_SHORT).show();
+                showSnackbar("No category or subcategory specified");
             }
         });
 
@@ -262,20 +307,30 @@ public class EditDBActivity extends AppCompatActivity {
         //spinnerDifficulty.setSelection(-1, false);
         //spinnerDifficulty.setPrompt("Difficulty");
 
-        buttonNext = findViewById(R.id.buttonNext);
-        buttonBack = findViewById(R.id.buttonBack);
-        buttonHome = findViewById(R.id.buttonHome);
+        Button buttonNext = findViewById(R.id.buttonNext);
+        buttonNext.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_purple)));
+
+        Button buttonBack = findViewById(R.id.buttonBack);
+        buttonBack.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_purple)));
+
+        Button buttonHome = findViewById(R.id.buttonHome);
+        buttonHome.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange)));
+
 
         buttonHome.setOnClickListener(view -> {
-            Intent intent = new Intent(EditDBActivity.this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // This flag ensures that if MainActivity is already open, it will be brought to the front
-            startActivity(intent);
-            finish(); // Optionally, if you want to remove the current activity from the back stack
+            Intent returnIntent = new Intent();
+            returnIntent.putExtra("updatedWord", currentWord); // 'updatedWord' is your edited Word object
+            setResult(RESULT_OK, returnIntent);
+            finish();
+
         });
 
 
-        buttonCategory = findViewById(R.id.buttonCategory);
-        buttonSubcat = findViewById(R.id.buttonSubcat);
+        Button buttonCategory = findViewById(R.id.buttonCategory);
+        buttonCategory.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
+
+        Button buttonSubcat = findViewById(R.id.buttonSubcat);
+        buttonSubcat.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
 
         imageView = findViewById(R.id.associated_image);
         associatedImage = findViewById(R.id.associated_image);
@@ -312,7 +367,7 @@ public class EditDBActivity extends AppCompatActivity {
         buttonSubcat.setOnClickListener(view -> {
             String selectedCategory = editTextCategory.getText().toString();
             if (selectedCategory.isEmpty()) {
-                Toast.makeText(EditDBActivity.this, "Please select a category first!", Toast.LENGTH_SHORT).show();
+                showSnackbar("Please select a category first!");
                 return;
             }
 
@@ -341,7 +396,7 @@ public class EditDBActivity extends AppCompatActivity {
 
             } else {
                 Log.d("FLAG", "buttonNext Current word list is empty: ");
-                Toast.makeText(EditDBActivity.this, "You've reached the end of the list.", Toast.LENGTH_SHORT).show();
+                showSnackbar( "You've reached the end of the list.");
             }
         });
         buttonBack.setOnClickListener(view -> {
@@ -349,7 +404,7 @@ public class EditDBActivity extends AppCompatActivity {
                 currentPosition--;
                 displayWord(currentWordsList.get(currentPosition));
             } else {
-                Toast.makeText(EditDBActivity.this, "You're at the start of the list.", Toast.LENGTH_SHORT).show();
+                showSnackbar("You're at the start of the list.");
             }
         });
 
@@ -369,10 +424,12 @@ public class EditDBActivity extends AppCompatActivity {
 
     private static final int IMAGE_PICK_REQUEST = 1001;
     private File generateImagePath(Word currentWord) {
+        // Use the currentWord's category, subcategory, and item to generate the file path
         String category = currentWord.getCategory() != null ? currentWord.getCategory() : "unknown";
         String subcategory = currentWord.getSubcategory() != null ? currentWord.getSubcategory() : "unknown";
+        String item = currentWord.getItem() != null ? currentWord.getItem() : "unknown";
 
-        return new File(getExternalFilesDir(null), "Images/" + category + "/" + subcategory + "/" + currentWord.getItem() + ".png");
+        return new File(getExternalFilesDir(null), "Images/" + category + "/" + subcategory + "/" + item + ".png");
     }
 
     private void pickImageFromGallery() {
@@ -380,48 +437,128 @@ public class EditDBActivity extends AppCompatActivity {
         pickImageIntent.setType("image/*");
         startActivityForResult(pickImageIntent, IMAGE_PICK_REQUEST);
     }
+    public void deleteNullCategories() {
+        executor.execute(() -> {
+            try {
+                wordDao.deleteNullCategories(); // Assuming you have a method in wordDao to delete null categories
+                Log.d("FLAG", "Null categories deleted successfully.");
+            } catch (Exception e) {
+                Log.e("FLAG", "Error deleting null categories: " + e.getMessage(), e);
+            }
+        });
+    }
 
-    private void deleteCurrentWord() {
+    /*private void deleteCurrentWord() {
         if (currentWordsList != null && !currentWordsList.isEmpty()) {
             Word currentWord = currentWordsList.get(currentPosition);
             executor.execute(() -> {
                 wordDao.deleteWord(currentWord);
                 runOnUiThread(() -> {
-                    // Optionally update your UI after deletion
-                    Toast.makeText(this, "Word deleted successfully", Toast.LENGTH_SHORT).show();
-                    // TODO: Refresh your data/view after deleting.
+                    showSnackbar("Word deleted successfully");
+                    refreshWordsAndNavigate(); // Refresh the list and navigate
                 });
             });
         } else {
-            Toast.makeText(this, "No word to delete", Toast.LENGTH_SHORT).show();
+            showSnackbar("No word to delete");
+        }
+    }*/
+    private void deleteCurrentWord(boolean isSingleDeletion) {
+        if (currentWord != null) {
+            executor.execute(() -> {
+                wordDao.deleteWord(currentWord);
+                runOnUiThread(() -> {
+                    showSnackbar("Word deleted successfully");
+                    if (isSingleDeletion) {
+                        displayFirstWordOfCurrentCategoryAndSubcategory();
+                    } else {
+                        refreshWordsAndNavigate();
+                    }
+                });
+            });
+        } else {
+            showSnackbar("No word to delete");
+            Log.e("EditDBActivity", "currentWord is null, cannot delete");
         }
     }
-    private void createNewWord() {
-        // Read from the EditText fields to create a new Word object
-        Word newWord = new Word();
-        newWord.setCategory(editTextCategory.getText().toString());
-        newWord.setSubcategory(editTextSubcat.getText().toString());
-        newWord.setItem(editTextItem.getText().toString());
-        newWord.setDescription(editTextDescription.getText().toString());
-        newWord.setDetails(editTextDetails.getText().toString());
-        newWord.setDifficulty(spinnerDifficulty.getSelectedItem().toString());
-        // TODO: Set other fields...
+    private void displayFirstWordOfCurrentCategoryAndSubcategory() {
+        String currentCategory = getCurrentCategory();
+        String currentSubcategory = getCurrentSubcategory();
 
+        getFirstWordForCategoryAndSubcategory(currentCategory, currentSubcategory, word -> {
+            if (word != null) {
+                displayWord(word);
+            } else {
+                showSnackbar("No more words to display in this category/subcategory.");
+            }
+        });
+    }
+
+    private void getFirstWordForCategoryAndSubcategory(String category, String subcategory, Callback<Word> callback) {
         executor.execute(() -> {
-            // Insert the new Word into the database
+            Word firstWord = wordDao.getFirstWordByCategoryAndSubcategory(category, subcategory);
+            runOnUiThread(() -> callback.onResult(firstWord));
+        });
+    }
+
+    private String getCurrentCategory() {
+        return editTextCategory.getText().toString();
+    }
+
+    private String getCurrentSubcategory() {
+        return editTextSubcat.getText().toString();
+    }
+    private void refreshWordsAndNavigate() {
+        String currentCategory = getCurrentCategory();
+        String currentSubcategory = getCurrentSubcategory();
+
+        getWordsForSubcategory(currentCategory, currentSubcategory, words -> {
+            currentWordsList = words;
+            if (currentWordsList != null && !currentWordsList.isEmpty()) {
+                if (currentPosition >= currentWordsList.size()) {
+                    currentPosition = 0; // Adjust for deleted word being the last in the list
+                }
+                Log.d("FLAG", "Displaying word at adjusted position: " + currentPosition);
+                displayWord(currentWordsList.get(currentPosition));
+            } else {
+                Log.d("FLAG", "No words left in the category/subcategory after deletion.");
+                showSnackbar("No more words to display.");
+            }
+        });
+    }
+
+    private void createNewWord() {
+        executor.execute(() -> {
+            // Get the highest ID and increment it
+            int maxId = wordDao.getMaxId();
+            Word newWord = new Word();
+            newWord.setId(maxId + 1);
+            newWord.setCategory(editTextCategory.getText().toString());
+            newWord.setSubcategory(editTextSubcat.getText().toString());
+            newWord.setItem(editTextItem.getText().toString());
+            newWord.setDescription(editTextDescription.getText().toString());
+            newWord.setDetails(editTextDetails.getText().toString());
+            newWord.setDifficulty(spinnerDifficulty.getSelectedItem().toString());
+
+            // Handle image
+            if (selectedImage != null) {
+                byte[] imageBytes = uriToByteArray(selectedImage);
+                newWord.setImage(imageBytes);
+            }
+
+            // Insert the new word into the database
             wordDao.insert(newWord);
 
+            // UI update on the main thread
             runOnUiThread(() -> {
-                Toast.makeText(this, "New word added successfully", Toast.LENGTH_LONG).show();
-
-                // TODO: Clear other fields...
+                Log.d("FLAG", "New word added: " + newWord.toString());
+                showSnackbar("New word added successfully");
+                // Clear fields or other UI updates
             });
         });
     }
+
     private void updateCurrentWord() {
-        if (currentWordsList != null && !currentWordsList.isEmpty()) {
-            Word currentWord = currentWordsList.get(currentPosition);
-            // Update the currentWord object with the data from the EditText fields
+        if (currentWord != null) {
             currentWord.setCategory(editTextCategory.getText().toString());
             currentWord.setSubcategory(editTextSubcat.getText().toString());
             currentWord.setItem(editTextItem.getText().toString());
@@ -429,16 +566,23 @@ public class EditDBActivity extends AppCompatActivity {
             currentWord.setDetails(editTextDetails.getText().toString());
             currentWord.setDifficulty(spinnerDifficulty.getSelectedItem().toString());
 
-            // TODO: Set other fields...
+            // Save the image if a new image has been selected
+            if (selectedImage != null) {
+                File imagePath = generateImagePath(currentWord);
+                saveImageToFile(selectedImage, imagePath);
+            }
 
+            // Update the word in the database
             executor.execute(() -> {
                 wordDao.update(currentWord);
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Word updated successfully", Toast.LENGTH_SHORT).show();
+                    showSnackbar("Word updated successfully");
+                    Log.d("FLAG", "EditDBActivity - Word updated successfully: " + currentWord);
                 });
             });
         } else {
-            Toast.makeText(this, "No word selected for update", Toast.LENGTH_SHORT).show();
+            showSnackbar("No word selected for update");
+            Log.e("FLAG", "EditDBActivity - currentWord is null, cannot update");
         }
     }
     private void initializeDirectories() {
@@ -447,71 +591,101 @@ public class EditDBActivity extends AppCompatActivity {
             // Handle the error, e.g., show an error message or disable features that rely on this directory.
         }
     }
-    private void loadImageForWord(Word currentWord) {
-        File imageFile = generateImagePath(currentWord);
+    private void updateWordWithNewImage(Uri imageUri, File destinationFile) {
+        // Convert imageUri to byte array if needed or store the image path
+        byte[] imageBytes = uriToByteArray(imageUri);
+        currentWord.setImage(imageBytes);
+
+        // Update the word in the database
+        executor.execute(() -> {
+            wordDao.update(currentWord);
+            runOnUiThread(() -> {
+                Log.d("FLAG", "Word updated with new image successfully");
+                showSnackbar("Word updated with new image successfully");
+                // Refresh UI if necessary
+            });
+        });
+    }
+
+    private byte[] uriToByteArray(Uri uri) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            InputStream is = getContentResolver().openInputStream(uri);
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, bytesRead);
+            }
+            is.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return baos.toByteArray();
+    }
+
+    private void displayWord(Word word) {
+        if (word == null) {
+            // Handle null word
+            clearTextFields();
+            return;
+        }
+
+        currentWord = word; // Update currentWord
+        updateTextFields(word); // Update text fields with word details
+        loadImageForWord(word); // Load and display the associated image
+    }
+
+    private void updateTextFields(Word word) {
+        editTextCategory.setText(safeString(word.getCategory()));
+        editTextSubcat.setText(safeString(word.getSubcategory()));
+        editTextItem.setText(safeString(word.getItem()));
+        editTextDescription.setText(safeString(word.getDescription()));
+        editTextDetails.setText(safeString(word.getDetails()));
+        updateSpinnerSelection(word.getDifficulty());
+    }
+
+    private void loadImageForWord(Word word) {
+        File imageFile = generateImagePath(word);
         Uri imageUri = Uri.fromFile(imageFile);
-        Log.d("FLAG", "Image filepath: " + imageFile);
 
         RequestOptions requestOptions = new RequestOptions()
                 .fitCenter()
+                .centerInside()  // or use centerInside() based on your requirement
                 .override(1100, 700)
                 .error(R.drawable.smartflashnoimage)
                 .skipMemoryCache(true)
                 .diskCacheStrategy(DiskCacheStrategy.NONE);
 
         Object resourceToLoad = imageFile.exists() ? imageUri : R.drawable.smartflashnoimage;
-        if (!imageFile.exists()) {
-            Log.d("FLAG", "Image not found: " + imageFile);
-        }
-
         Glide.with(this)
                 .load(resourceToLoad)
                 .apply(requestOptions)
-                .into(this.associatedImage);
-
+                .into(associatedImage);
     }
 
-    private void displayWord(Word word) {
-        // Check if the word object is null before proceeding
-        if (word == null) {
-            // Handle the case where word is null
-            Log.w("displayWord", "The provided Word object is null.");
-            // You could also clear the text fields or disable UI elements as appropriate
-            editTextCategory.setText("");
-            editTextSubcat.setText("");
-            editTextItem.setText("");
-            editTextDescription.setText("");
-            editTextDetails.setText("");
-            spinnerDifficulty.setSelection(0); // or whatever default value you want
-            // ... any additional handling
-            return;
-        }
+    private void clearTextFields() {
+        editTextCategory.setText("");
+        editTextSubcat.setText("");
+        editTextItem.setText("");
+        editTextDescription.setText("");
+        editTextDetails.setText("");
+        spinnerDifficulty.setSelection(0);
+        Glide.with(this).load(R.drawable.smartflashnoimage).into(associatedImage);
+    }
 
-        // Continue as normal because word is not null
-        currentWord = word; // This sets the class-level currentWord
-
-        editTextCategory.setText(safeString(currentWord.getCategory()));
-        editTextSubcat.setText(safeString(currentWord.getSubcategory()));
-        editTextItem.setText(safeString(currentWord.getItem()));
-        editTextDescription.setText(safeString(currentWord.getDescription()));
-        editTextDetails.setText(safeString(currentWord.getDetails()));
-
-        String difficulty = safeString(currentWord.getDifficulty());
-        if (!difficulty.isEmpty()) {
+    private void updateSpinnerSelection(String difficulty) {
+        if (difficulty != null && !difficulty.isEmpty()) {
             int index = ((ArrayAdapter<String>) spinnerDifficulty.getAdapter()).getPosition(difficulty);
             spinnerDifficulty.setSelection(index);
         } else {
-            spinnerDifficulty.setSelection(0); // Set to default or appropriate value
+            spinnerDifficulty.setSelection(0);
         }
-
-        loadImageForWord(currentWord);
     }
 
     // Helper method to ensure strings are not null
     private String safeString(String input) {
         return input != null ? input : "";
     }
-
 
     private void getCategoryData(String chosenCategory, Callback<Word> callback) {
         // Use your executor to fetch data off the main thread
@@ -628,15 +802,21 @@ public class EditDBActivity extends AppCompatActivity {
         executor.execute(() -> {
             List<String> categories = new ArrayList<>();
             try {
-                categories = wordDao.getAllDistinctCategories();
-                Log.d("FLAG", "Fetched Categories: " + categories);
-
+                List<String> fetchedCategories = wordDao.getAllDistinctCategories();
+                for (String category : fetchedCategories) {
+                    if (category == null) {
+                        Log.e("FLAG", "Null category found");
+                    } else {
+                        Log.d("FLAG", "Fetched Category: " + category);
+                        categories.add(category);
+                    }
+                }
+                categories.sort(String.CASE_INSENSITIVE_ORDER);
             } catch (Exception e) {
                 Log.e("FLAG", "in getAllCategories method - BROKEN: " + e.getMessage(), e);
             }
 
             String[] categoryArray = categories.toArray(new String[0]);
-            // Use a callback to return the fetched data to the UI thread
             runOnUiThread(() -> callback.accept(categoryArray));
         });
     }
@@ -645,49 +825,25 @@ public class EditDBActivity extends AppCompatActivity {
         executor.execute(() -> {
             List<String> subcategories = new ArrayList<>();
             try {
-                subcategories = wordDao.getSubcategoriesByCategory(category);
-                Log.d("FLAG", "Fetched Subcategories for " + category + ": " + subcategories);
-
+                List<String> fetchedSubcategories = wordDao.getSubcategoriesByCategory(category);
+                for (String subcategory : fetchedSubcategories) {
+                    if (subcategory == null) {
+                        Log.e("FLAG", "Null subcategory found in category: " + category);
+                    } else {
+                        Log.d("FLAG", "Fetched Subcategory: " + subcategory + " in category: " + category);
+                        subcategories.add(subcategory);
+                    }
+                }
+                subcategories.sort(String.CASE_INSENSITIVE_ORDER);
             } catch (Exception e) {
                 Log.e("FLAG", "Error fetching subcategories: " + e.getMessage(), e);
             }
 
             String[] subcategoryArray = subcategories.toArray(new String[0]);
-            // Use a callback to return the fetched data to the UI thread
             runOnUiThread(() -> callback.accept(subcategoryArray));
         });
     }
-    private void loadWordsForCategory(String chosenCategory) {
-        executor.execute(() -> {
-            currentWordsList = wordDao.getWordsForCategory(chosenCategory);
-            currentPosition = 0;
 
-            runOnUiThread(() -> {
-                if (!currentWordsList.isEmpty()) {
-                    displayWord(currentWordsList.get(currentPosition));
-                }
-            });
-        });
-
-    }
-
-    private void loadFirstRecordOfCategory(String category) {
-        try {
-            currentWord = wordDao.getFirstWordByCategory(category);
-            // TODO: Display the `currentWord` details on your UI
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void loadFirstRecordOfCategoryAndSubcat(String category, String subcategory) {
-        try {
-            currentWord = wordDao.getFirstWordByCategoryAndSubcategory(category, subcategory);
-            // TODO: Display the `currentWord` details on your UI
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
     private void deleteCategory(String category) {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Category")
@@ -700,7 +856,7 @@ public class EditDBActivity extends AppCompatActivity {
                         // You need to convert LiveData to List synchronously since we are already off the main thread.
                         List<Word> updatedWords = wordDao.getAllWords(); // Make sure to call this after the deletion is done.
                         runOnUiThread(() -> {
-                            Toast.makeText(EditDBActivity.this, "Category deleted successfully", Toast.LENGTH_SHORT).show();
+                            showSnackbar("Category deleted successfully");
                             // TODO: Update your UI here if necessary.
                             initializeUIElements();
                             // The LiveData should be observed in the place where you are setting the adapter data.
@@ -722,7 +878,7 @@ public class EditDBActivity extends AppCompatActivity {
                         // Same here for LiveData to List conversion.
                         List<Word> updatedWords = wordDao.getAllWords(); // Again, make sure to call this after the deletion.
                         runOnUiThread(() -> {
-                            Toast.makeText(EditDBActivity.this, "Subcategory deleted successfully", Toast.LENGTH_SHORT).show();
+                            showSnackbar("Subcategory deleted successfully");
                             // TODO: Update your UI here if necessary.
                             initializeUIElements();
 
@@ -731,6 +887,31 @@ public class EditDBActivity extends AppCompatActivity {
                     });
                 })
                 .setNegativeButton(android.R.string.no, null).show();
+    }
+    private void showDeleteWordConfirmationDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Confirm Deletion");
+        builder.setMessage("Are you sure you want to delete this word?");
+
+        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // Assuming isSingleDeletion is a field in this class
+                // Set it to true if it's a single record deletion context
+                // For example, set it to true here if this is the EditDBActivity
+                deleteCurrentWord(true); // Or just use deleteCurrentWord(true) if it's always a single record deletion in this context
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     @Override
@@ -744,6 +925,8 @@ public class EditDBActivity extends AppCompatActivity {
                 Log.e("FLAG", "Word object is null" + currentWord);
                 return;
             }
+            // Update the item name of currentWord here before saving the image
+            currentWord.setItem(editTextItem.getText().toString());
 
             File destinationFile = generateImagePath(currentWord);
             Log.d("FLAG", "Desination file path: " + destinationFile);
@@ -778,8 +961,15 @@ public class EditDBActivity extends AppCompatActivity {
                 .apply(requestOptions)
                 .into(imageView);  // Assuming imageView is your ImageView's variable name
     }
+
     private void saveImageToFile(Uri selectedImage, File destinationFile) {
         try {
+            // Ensure parent directories exist
+            File parentDir = destinationFile.getParentFile();
+            if (!parentDir.exists() && !parentDir.mkdirs()) {
+                throw new IOException("Failed to create directory: " + parentDir);
+            }
+
             InputStream is = getContentResolver().openInputStream(selectedImage);
             OutputStream os = new FileOutputStream(destinationFile);
 
@@ -791,34 +981,36 @@ public class EditDBActivity extends AppCompatActivity {
             is.close();
             os.close();
 
-            Toast.makeText(this, "Image saved successfully!", Toast.LENGTH_SHORT).show();
+            Log.d("FLAG", "Image saved successfully at: " + destinationFile.getAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Failed to save image.", Toast.LENGTH_SHORT).show();
+            Log.e("FLAG", "Failed to save image: " + e.getMessage());
         }
     }
 
-    private void saveImage(Uri sourceUri, File destinationFile) {
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(sourceUri);
-            OutputStream outputStream = new FileOutputStream(destinationFile);
 
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = inputStream.read(buffer)) > 0) {
-                outputStream.write(buffer, 0, length);
-            }
+    public void showSnackbar(String message) {
+        View view = findViewById(android.R.id.content); // Finds the root view of the current activity layout
+        Snackbar snackbar = Snackbar.make(view, message, Snackbar.LENGTH_SHORT);
 
-            inputStream.close();
-            outputStream.close();
+        // Customize the Snackbar's background color and text
+        //snackbar.getView().setBackgroundColor(ContextCompat.getColor(this, R.color.dark_blue));
+        snackbar.getView().setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_red)));
 
-            Toast.makeText(this, "Image Updated!", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Error updating image", Toast.LENGTH_SHORT).show();
-        }
+        TextView textView = snackbar.getView().findViewById(com.google.android.material.R.id.snackbar_text);
+        textView.setTextColor(ContextCompat.getColor(this, R.color.white));
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18); // Set text size
+
+        // Customize the width and position of the Snackbar
+        View snackbarLayout = snackbar.getView();
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) snackbarLayout.getLayoutParams();
+
+        params.gravity = Gravity.CENTER; // Center both vertically and horizontally
+        params.width = ViewGroup.LayoutParams.WRAP_CONTENT;  // Set the width of the Snackbar to wrap its content
+        snackbarLayout.setLayoutParams(params);
+
+        snackbar.show();
     }
-
 }
 
 

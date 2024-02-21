@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -171,9 +172,11 @@ public class AdminActivity extends AppCompatActivity {
                 }
         );
 
-        TextView textView = findViewById(R.id.csv_file_path); // Use a descriptive ID instead of 2131296485
+        TextView textView = findViewById(R.id.csv_file_path);
 
-        findViewById(R.id.select_csv_button).setOnClickListener(view -> {
+        Button select_csv_button = findViewById(R.id.select_csv_button);
+        select_csv_button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_green)));
+        select_csv_button.setOnClickListener(v -> {
             Log.d("FLAG", "select_csv_button onClick, about to launch file picker");
             if (Build.VERSION.SDK_INT >= 30) {
                 if (Environment.isExternalStorageManager()) {
@@ -189,12 +192,19 @@ public class AdminActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.button_Export).setOnClickListener(view -> {
+        Button button_Export = findViewById(R.id.button_Export);
+        button_Export.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_purple)));
+        button_Export.setOnClickListener(v -> {
             exportDatabaseToCSV();
         });
 
+
         Button homeButton = findViewById(R.id.home_button);
-        homeButton.setOnClickListener(v -> finish());
+        homeButton.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange)));
+        homeButton.setOnClickListener(v -> {
+            finish();
+        });
+
     }
     private void checkAndLaunchFilePicker() {
         if (checkStoragePermissions()) {

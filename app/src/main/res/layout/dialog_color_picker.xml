@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:columnCount="4">
+
+    <Button
+        android:id="@+id/colorBlue"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/blue" />
+    <Button
+        android:id="@+id/colorDarkLightblue"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/light_blue" />
+    <Button
+        android:id="@+id/colormyback"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/my_background_color" />
+    <Button
+        android:id="@+id/colorWhite"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/white" />
+    <Button
+        android:id="@+id/colorDarkblue"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/dark_blue" />
+    <Button
+        android:id="@+id/colorDarkgreen"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/dark_green" />
+    <Button
+        android:id="@+id/colorDarkRed"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/dark_red" />
+    <Button
+        android:id="@+id/colorDarkPurple"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/dark_purple" />
+    <Button
+        android:id="@+id/colorFlashblue"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/flash_blue" />
+    <Button
+        android:id="@+id/colorOrange"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/orange" />
+    <Button
+        android:id="@+id/colorGray"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/gray" />
+    <Button
+        android:id="@+id/colorDarkgray"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/dark_gray" />
+    <Button
+        android:id="@+id/colorYellow"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/yellow" />
+
+    <Button
+        android:id="@+id/colorBlack"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@android:color/black" />
+
+    <!-- Add more colors as needed -->
+</GridLayout>
+

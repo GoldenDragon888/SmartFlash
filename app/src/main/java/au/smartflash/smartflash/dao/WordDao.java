@@ -20,6 +20,8 @@ public interface WordDao {
     void insertWord(Word word);
     @Insert(onConflict = OnConflictStrategy.REPLACE) // or choose a different conflict strategy if preferred
     void insertAll(Word... words);
+    @Query("DELETE FROM Cards WHERE category IS NULL")
+    void deleteNullCategories();
     @Query("SELECT COUNT(*) FROM Cards WHERE Item = :item AND Description = :description")
     int wordExists(String item, String description);
     @Query("SELECT * FROM Cards WHERE id = :wordId")
@@ -34,6 +36,8 @@ public interface WordDao {
     //void update(Word word);
     @Query("SELECT COUNT(*) FROM Cards WHERE Category = :category AND Subcategory = :subcategory AND Item = :item")
     int countWordsByCategorySubcategoryItem(String category, String subcategory, String item);
+    @Query("SELECT COUNT(*) FROM Cards WHERE Category = :category AND Subcategory = :subcategory AND Item = :item AND Description = :description AND Details = :details")
+    int countWordsByCategorySubcategoryItemetc(String category, String subcategory, String item, String description, String details);
     @Query("SELECT COUNT(id) FROM Cards WHERE difficulty = :difficulty")
     int countWordsWithDifficulty(String difficulty);
 
@@ -46,9 +50,6 @@ public interface WordDao {
     void deleteAll();
     @Update
     void updateWord(Word word);
-    // Delete a word by its item name
-    //@Query("DELETE FROM Cards WHERE Item = :currentItem")
-    //int deleteWordByItem(String currentItem);
     @Query("DELETE FROM Cards WHERE id = :currentId")
     int deleteWordById(int currentId);
     @Query("SELECT * FROM Cards")

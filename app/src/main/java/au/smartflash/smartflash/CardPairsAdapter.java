@@ -44,7 +44,15 @@ public class CardPairsAdapter extends RecyclerView.Adapter<CardPairsAdapter.Your
         this.listener = cardClickListener;
         this.cardCountMap = countMap;
     }
-
+    public CategorySubcategoryPair getPairAtPosition(int position) {
+        if (position >= 0 && position < listOfPairs.size()) {
+            return listOfPairs.get(position);
+        } else {
+            // Handle the case where the position is out of bounds
+            Log.e("CardPairsAdapter", "getPairAtPosition: Invalid position: " + position);
+            return null; // or throw an exception as per your error handling policy
+        }
+    }
     public void updateList(List<CategorySubcategoryPair> newListOfPairs, Map<CategorySubcategoryPair, Integer> newCardCountMap) {
         Collections.sort(newListOfPairs, ALPHABETICAL_COMPARATOR);
 
