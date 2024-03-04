@@ -548,29 +548,10 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             btnMedium.setOnClickListener(v -> showUpdateDifficultyDialog("Medium"));
             btnHard.setOnClickListener(v -> showUpdateDifficultyDialog("Hard"));
 
-        /*
-        Button buttonEdit = findViewById(R.id.buttonEdit); // replace with your button ID
-            if (buttonEdit != null) {
-                buttonEdit.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange)));
-                buttonEdit.setOnClickListener(v -> {
-                    if (currentWord != null) {
-                        Log.d("MainActivity", "Editing word: " + currentWord.toString());
 
-                        Intent intent = new Intent(MainActivity.this, EditDBActivity.class);
-                        intent.putExtra("word", currentWord); // Passing the currentWord
-                        startActivity(intent);
-                    } else {
-                        // Handle the case where there is no current word
-                        // For example, show a message to the user
-                        Toast.makeText(this, "No current word available", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            } else {
-                Log.e("MainActivity", "ButtonEdit is null");
-            }
-
-         */
         Button buttonEdit = findViewById(R.id.buttonEdit);
+        buttonEdit.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.yellow)));
+
         if (buttonEdit != null) {
             buttonEdit.setOnClickListener(v -> {
                 updateWordDisplay(currentWord);  // Ensure the display is updated with the current word
@@ -1604,6 +1585,9 @@ public class MainActivity extends AppCompatActivity implements OnTaskCompleted, 
             startActivity(intent);
         } else if (id == R.id.nav_user_notes) {
             Intent intent = new Intent(this, UserNotes.class);
+            startActivity(intent);
+        } else if (id == R.id.nav_calendar_notes) {
+            Intent intent = new Intent(this, CalendarNotesActivity.class);
             startActivity(intent);
         }
 

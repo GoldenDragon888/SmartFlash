@@ -2,6 +2,8 @@ package au.smartflash.smartflash.model;
 
 import com.google.firebase.Timestamp;
 
+import java.util.List;
+
 public class Note {
     private String id;
     private String name;
@@ -11,6 +13,8 @@ public class Note {
     private Timestamp lastModified;
     private boolean isVisible;
     private boolean isEncrypted;
+    private List<String> tags;
+
 
     // Default constructor (needed for Firestore)
     public Note() {
@@ -18,7 +22,8 @@ public class Note {
 
     // Parameterized constructor
     public Note(String id, String name, String content, String color,
-                Timestamp createdAt, Timestamp lastModified, boolean isVisible, boolean isEncrypted) {
+                Timestamp createdAt, Timestamp lastModified, boolean isVisible,
+                boolean isEncrypted, List<String> tags) {
         this.id = id;
         this.name = name;
         this.content = content;
@@ -27,6 +32,7 @@ public class Note {
         this.lastModified = lastModified;
         this.isVisible = isVisible;
         this.isEncrypted = isEncrypted;
+        this.tags = tags;
     }
 
     // Getters
@@ -61,7 +67,9 @@ public class Note {
     public boolean isEncrypted() {
         return isEncrypted;
     }
-
+    public List<String> getTags() {
+        return tags;
+    }
     // Setters
     public void setId(String id) {
         this.id = id;
@@ -93,5 +101,8 @@ public class Note {
 
     public void setEncrypted(boolean encrypted) {
         isEncrypted = encrypted;
+    }
+    public void setTags(List<String> tags) {
+        this.tags = tags;
     }
 }

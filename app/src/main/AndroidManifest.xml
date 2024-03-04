@@ -26,6 +26,7 @@
         <activity android:name=".UserAdminActivity" />
         <activity android:name=".CardPairListActivity" />
         <activity android:name=".UserNotes" />
+        <activity android:name=".CalendarNotesActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
