@@ -346,7 +346,7 @@
                 android:id="@+id/button_category"
                 style="@style/CustomButtonStyle"
                 android:layout_width="80dp"
-                android:layout_height="60dp"
+                android:layout_height="50dp"
                 android:layout_weight="1"
                 android:layout_margin="5dp"
                 android:text="Category"
@@ -363,7 +363,7 @@
                 android:id="@+id/button_subcat"
                 style="@style/CustomButtonStyle"
                 android:layout_width="80dp"
-                android:layout_height="60dp"
+                android:layout_height="50dp"
                 android:layout_weight="1"
                 android:layout_margin="5dp"
                 android:text="Subcategory"
@@ -379,7 +379,7 @@
                 android:id="@+id/button_difficulty"
                 style="@style/CustomButtonStyle"
                 android:layout_width="80dp"
-                android:layout_height="60dp"
+                android:layout_height="50dp"
                 android:layout_weight="1"
                 android:layout_margin="5dp"
                 android:text="Difficulty"
@@ -404,8 +404,8 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnEasy"
             style="@style/CustomButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="90dp"
+            android:layout_height="40dp"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
             android:layout_marginTop="2dp"
@@ -415,8 +415,8 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnMedium"
             style="@style/CustomButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="90dp"
+            android:layout_height="40dp"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
             android:layout_marginTop="2dp"
@@ -426,22 +426,24 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnHard"
             style="@style/CustomButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="5dp"
+            android:layout_width="90dp"
+            android:layout_height="40dp"
+            android:layout_marginLeft="15dp"
             android:layout_marginRight="5dp"
             android:layout_marginTop="2dp"
             android:layout_marginBottom="2dp"
             android:text="Hard" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonEdit"
             style="@style/CustomButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="90dp"
+            android:layout_height="40dp"
             android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
+            android:layout_marginRight="15dp"
             android:layout_marginTop="2dp"
             android:layout_marginBottom="2dp"
+            android:textColor="@color/black"
             android:text="Edit" />
     </LinearLayout>
 
@@ -453,11 +455,12 @@
         android:layout_below="@+id/difficultyLayout"
         android:gravity="center"
         android:orientation="horizontal">
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/play_button"
             style="@style/CustomButtonStyle"
             android:layout_width="130dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
             android:layout_marginTop="2dp"
@@ -469,8 +472,8 @@
             style="@style/CustomButtonStyle"
             android:id="@+id/stop_button"
             android:layout_width="130dp"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="5dp"
+            android:layout_height="40dp"
+            android:layout_marginLeft="15dp"
             android:layout_marginRight="5dp"
             android:layout_marginTop="2dp"
             android:layout_marginBottom="2dp"
@@ -481,7 +484,7 @@
             style="@style/CustomButtonStyle"
             android:id="@+id/audio_check"
             android:layout_width="130dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
             android:layout_marginTop="2dp"
@@ -503,9 +506,9 @@
             android:id="@+id/back_button"
             style="@style/CustomButtonStyle"
             android:layout_width="110dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
+            android:layout_marginRight="15dp"
             android:layout_marginTop="2dp"
             android:layout_marginBottom="2dp"
             android:text="Previous"
@@ -515,7 +518,7 @@
             style="@style/CustomButtonStyle"
 
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:text="Record StopStart"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
@@ -523,6 +526,7 @@
             android:layout_marginBottom="2dp"
             android:backgroundTint="@color/flash_blue"
             android:drawableTint="@color/blue"/>
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/next_button"
             style="@style/CustomButtonStyle"
@@ -531,7 +535,7 @@
             android:layout_marginTop="2dp"
             android:layout_marginBottom="2dp"
             android:layout_width="110dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:text="Next"
             android:backgroundTint="@color/orange"/>
     </LinearLayout>

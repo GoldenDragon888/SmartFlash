@@ -28,102 +28,328 @@
             android:background="@color/flash_blue"
             app:popupTheme="@style/AppTheme.PopupOverlay" />
 
-
-        <!-- Calendar View -->
-    <com.prolificinteractive.materialcalendarview.MaterialCalendarView
-        android:id="@+id/calendarView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/imageView"/>
-
-    <!-- ScrollView for DayNote and TodoNote -->
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/calendarView">
-
-        <!-- Vertical LinearLayout for DayNote and TodoNote -->
-        <LinearLayout
+        <!-- ScrollView for Calendar View, DayNote, and TodoNote -->
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="10dp">
+            android:layout_height="match_parent"
+            android:layout_above="@id/layoutSaveButtons"
+            android:layout_below="@id/imageView">
 
-            <!-- DayNote Section -->
+            <!-- Main Container for All Elements -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
+                android:padding="10dp">
+
+            <!-- Calendar View -->
+            <com.prolificinteractive.materialcalendarview.MaterialCalendarView
+                android:id="@+id/calendarView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+                <!-- Calendar Events Section -->
+                <LinearLayout
+                    android:id="@+id/calendarEventsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="5dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="right">
+
+                        <TextView
+                            android:id="@+id/calendarEventsHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="200dp"
+                            android:layout_weight="1"
+                            android:text="Calendar Events"
+                            android:textColor="@android:color/black"
+                            android:background="@android:color/white"
+                            android:visibility="gone"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.button.MaterialButton
+                            style="@style/CustomButtonStyle"
+                            android:id="@+id/btnToggleCalendarEvents"
+                            android:layout_width="wrap_content"
+                            android:layout_height="35dp"
+                            android:textColor="@android:color/black"
+                            android:text="Hide Events"
+                            android:gravity="right"/>
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvCalendarEvents"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:scrollbars="vertical"
+                        android:background="@android:color/white"
+                        android:visibility="visible"/>
+
+                    <ImageView
+                        android:id="@+id/drag_handle"
+                        android:layout_width="match_parent"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_android_black_24dp"
+                        android:contentDescription="@string/drag_handle_description"
+                        android:padding="8dp"/>
+
+                </LinearLayout>
+                <!-- Search Bar and Today Button in a Horizontal Layout -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/editTextSearch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColorHint="@android:color/black"
+                        android:textColor="@android:color/black"
+                        android:hint="Search notes"
+                        android:inputType="text"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        style="@style/CustomButtonStyle"
+                        android:id="@+id/btnToday"
+                        android:layout_width="90dp"
+                        android:layout_height="35dp"
+                        android:layout_marginLeft="5.0dip"
+                        android:layout_marginRight="5.0dip"
+                        android:text="Today"/>
+                    <com.google.android.material.button.MaterialButton
+                        style="@style/CustomButtonStyle"
+                        android:id="@+id/btnSwitchviews"
+                        android:layout_width="90dp"
+                        android:layout_height="35dp"
+                        android:layout_marginLeft="5.0dip"
+                        android:layout_marginRight="5.0dip"
+                        android:text="Switch"/>
+                </LinearLayout>
+            <!-- Vertical LinearLayout for DayNote and TodoNote -->
+            <LinearLayout
+                android:id="@+id/daynotesContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/item_border"
+                android:orientation="vertical"
                 android:padding="5dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/dayNoteHeader"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="Day Note"
+                    android:textColor="@android:color/black"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <EditText
-                    android:id="@+id/dayNoteEditText"
+                <com.google.android.material.button.MaterialButton
+                    style="@style/CustomButtonStyle"
+                    android:id="@+id/btnToggleDayNotes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="35dp"
+                    android:textColor="@android:color/black"
+                    android:layout_marginLeft="5.0dip"
+                    android:layout_marginRight="0.0dip"
+                    android:text="Hide"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/dayNoteFormattingButtonsContainer"
                     android:layout_width="match_parent"
-                    android:layout_height="150dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="gone" />
+
+                <jp.wasabeef.richeditor.RichEditor
+                    android:id="@+id/dayNoteRichEditor"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:gravity="top"
+                    android:backgroundTint="@color/light_green"
                     android:inputType="textMultiLine"
                     android:background="@drawable/edit_text_border"
-                    android:padding="10dp"
+                    android:padding="5dp"
                     android:scrollbars="vertical" />
             </LinearLayout>
 
             <!-- TodoNote Section -->
             <LinearLayout
+                android:id="@+id/todonotesContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/item_border"
                 android:orientation="vertical"
                 android:padding="5dp"
                 android:layout_marginTop="10dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/todoNoteHeader"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="Todo Note"
+                    android:textColor="@android:color/black"
                     android:textSize="18sp"
                     android:textStyle="bold" />
+                <com.google.android.material.button.MaterialButton
+                    style="@style/CustomButtonStyle"
+                    android:id="@+id/btnToggleTodoNotes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="35dp"
+                    android:textColor="@android:color/black"
+                    android:layout_marginLeft="5.0dip"
+                    android:layout_marginRight="0.0dip"
+                    android:text="Hide"/>
+                </LinearLayout>
 
-                <EditText
-                    android:id="@+id/todoNoteEditText"
+                <!-- Placeholder for Todo Note Formatting Buttons -->
+                <LinearLayout
+                    android:id="@+id/todoNoteFormattingButtonsContainer"
                     android:layout_width="match_parent"
-                    android:layout_height="150dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="gone" />
+
+                <jp.wasabeef.richeditor.RichEditor
+                    android:id="@+id/todoNoteRichEditor"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/light_green"
                     android:gravity="top"
                     android:inputType="textMultiLine"
                     android:background="@drawable/edit_text_border"
-                    android:padding="10dp"
+                    android:padding="5dp"
                     android:scrollbars="vertical" />
             </LinearLayout>
+                <!-- Daily Insights Section -->
+                <LinearLayout
+                    android:id="@+id/dailyInsightsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/item_border"
+                    android:orientation="vertical"
+                    android:padding="5dp"
+                    android:layout_marginTop="10dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/dailyInsightsHeader"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Daily Insights"
+                        android:textColor="@android:color/black"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                    <com.google.android.material.button.MaterialButton
+                        style="@style/CustomButtonStyle"
+                        android:id="@+id/btnToggleInsights"
+                        android:layout_width="wrap_content"
+                        android:layout_height="35dp"
+                        android:textColor="@android:color/black"
+                        android:layout_marginLeft="5.0dip"
+                        android:layout_marginRight="0.0dip"
+                        android:text="Hide"
+                        />
+                    </LinearLayout>
+
+                    <!-- Placeholder for Todo Note Formatting Buttons -->
+                    <LinearLayout
+                        android:id="@+id/dailyInsightsFormattingButtonsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:visibility="gone" />
+
+                    <jp.wasabeef.richeditor.RichEditor
+                        android:id="@+id/dailyInsightsRichEditor"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="@color/light_blue"
+                        android:gravity="top"
+                        android:inputType="textMultiLine"
+                        android:background="@drawable/edit_text_border"
+                        android:padding="10dp"
+                        android:scrollbars="vertical" />
+                </LinearLayout>
         </LinearLayout>
-    </ScrollView>
+        </androidx.core.widget.NestedScrollView>
 
-    <!-- Bottom Save Buttons -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_alignParentBottom="true"
-        android:padding="10dp"
-        android:gravity="center">
-
-        <Button
-            android:id="@+id/saveDayNoteButton"
-            android:layout_width="wrap_content"
+        <!-- Save Buttons Layout -->
+        <LinearLayout
+            android:id="@+id/layoutSaveButtons"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginRight="10dp"
-            android:text="Save Day Note" />
+            android:orientation="horizontal"
+            android:layout_above="@id/layoutControls"
+            android:padding="5dp"
+            android:gravity="center">
 
-        <Button
-            android:id="@+id/saveTodoNoteButton"
-            android:layout_width="wrap_content"
+            <!-- Save Day Note Button -->
+            <com.google.android.material.button.MaterialButton
+                style="@style/CustomButtonStyle"
+                android:id="@+id/saveNoteButton"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginLeft="5.0dip"
+                android:layout_marginRight="5.0dip"
+                android:layout_weight="1"
+                android:text="Save both Notes" />
+
+
+        </LinearLayout>
+
+        <!-- Bottom Controls Layout -->
+        <LinearLayout
+            android:id="@+id/layoutControls"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save Todo Note" />
-    </LinearLayout>
+            android:orientation="horizontal"
+            android:layout_alignParentBottom="true"
+            android:padding="5dp">
+
+            <!-- Home Button -->
+            <com.google.android.material.button.MaterialButton
+                style="@style/CustomButtonStyle"
+                android:id="@+id/btnHome"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginLeft="5.0dip"
+                android:layout_marginRight="5.0dip"
+                android:layout_weight="1"
+                android:text="Home"/>
+            <!-- Refresh Notes Button -->
+            <com.google.android.material.button.MaterialButton
+                style="@style/CustomButtonStyle"
+                android:id="@+id/btnRefresh"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginLeft="5.0dip"
+                android:layout_marginRight="5.0dip"
+                android:layout_weight="1"
+                android:text="Refresh"/>
+        </LinearLayout>
+
     </RelativeLayout>
 
     <!-- Navigation Drawer -->

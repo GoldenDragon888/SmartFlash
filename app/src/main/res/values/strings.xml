@@ -8,6 +8,11 @@
     <string name="previous">Previous</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+    <!-- Header format for day note with date placeholder -->
+    <string name="day_note_header_format">Day Note: %s</string>
+
+    <!-- Header format for todo note with date placeholder -->
+    <string name="todo_note_header_format">Todo Note: %s</string>
     <string-array name="difficulties">
         <item>Select Difficulty from the list</item>
         <item>Easy</item>
@@ -30,6 +35,8 @@
     <string name="prompt_num_cards">#?</string>
     <string name="original_category_hint">Choose Category</string>
     <string name="original_subcategory_hint">Choose Subcategory</string>
+    <string name="drag_handle_description">Drag to adjust height</string>
+
     <string name="csv_instructions">Exporting your local Card Database to .csv will create a full backup to a file here:
 
         /storage/emulated/0/CSV_DB_Backup/database_backup.csv\n

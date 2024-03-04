@@ -5,8 +5,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
@@ -14,14 +17,20 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Button;
 import android.view.View;
+import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -36,9 +45,13 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.Timestamp;
 
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import au.smartflash.smartflash.model.Note;
@@ -74,7 +87,17 @@ public class UserNotes extends AppCompatActivity {
         return Color.HSVToColor(hsv);
     }
     private static final long DOUBLE_CLICK_TIME_DELTA = 300; //milliseconds
-
+    String javascriptFunctions =
+            "function insertCheckbox() {" +
+                    "   var editor = document.getElementById('editor');" +
+                    "   var checkbox = document.createElement('input');" +
+                    "   checkbox.type = 'checkbox';" +
+                    "   checkbox.onclick = function() { toggleCheckbox(this); };" +
+                    "   editor.appendChild(checkbox);" +
+                    "}" +
+                    "function toggleCheckbox(checkbox) {" +
+                    "   checkbox.checked = !checkbox.checked;" +
+                    "}";
     private boolean isColorDark(int color) {
         double darkness = 1 - (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255;
         return darkness >= 0.5; // It's a dark color if the darkness is greater than 0.5
@@ -125,7 +148,7 @@ public class UserNotes extends AppCompatActivity {
             refreshNotes();
         });
         btnPickColor = findViewById(R.id.btnPickColor); // Replace with your actual button ID
-        btnPickColor.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.light_blue)));
+        btnPickColor.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dark_blue)));
 
         btnPickColor.setOnClickListener(v -> {
             showColorPickerDialog(color -> {
@@ -181,6 +204,7 @@ public class UserNotes extends AppCompatActivity {
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             Note note = document.toObject(Note.class);
                             note.setId(document.getId());
+                            List<String> tags = note.getTags();
 
                             // Check if the note is already displayed
                             if (!displayedNoteIds.contains(note.getId()) &&
@@ -297,7 +321,7 @@ public class UserNotes extends AppCompatActivity {
         editTextSearch.setText("");
 
         // Clear existing views in the container to avoid duplicates
-        notesContainer.removeAllViews();
+        //notesContainer.removeAllViews();
 
         // Reload the notes
         loadNotes();
@@ -321,6 +345,8 @@ public class UserNotes extends AppCompatActivity {
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             Note note = document.toObject(Note.class);
                             note.setId(document.getId()); // Manually set the ID
+                            List<String> tags = note.getTags();
+
                             addNoteToView(note); // Add each note to the view
                         }
                     } else {
@@ -363,11 +389,17 @@ public class UserNotes extends AppCompatActivity {
 
         // Create RichEditor with the lighter note color
         RichEditor richEditor = createRichEditor(note.getContent(), lighterNoteColor, note.getId());
-        // Create buttons layout
-        LinearLayout buttonsLayout = createButtonsLayout(note.getId(), cardView, richEditor);
+
+        // Create formatting buttons layout (initially hidden)
+        LinearLayout formattingButtonsLayout = createFormattingButtonsLayout(richEditor);
+        formattingButtonsLayout.setVisibility(View.GONE);
+
+        // Create action buttons layout (initially hidden)
+        LinearLayout actionButtonsLayout = createButtonsLayout(note.getId(), cardView, richEditor);
+        actionButtonsLayout.setVisibility(View.GONE);
 
         // Create header layout (name and hide button) and pass isBackgroundColorDark
-        LinearLayout nameAndHideLayout = createNameAndHideLayout(note.getName(), richEditor, buttonsLayout, note, isBackgroundColorDark);
+        LinearLayout nameAndHideLayout = createNameAndHideLayout(note.getName(), richEditor, actionButtonsLayout, note, isBackgroundColorDark);
 
         // Create main layout for the note
         LinearLayout linearLayout = new LinearLayout(this);
@@ -377,16 +409,68 @@ public class UserNotes extends AppCompatActivity {
 
         // Add views to the main layout
         linearLayout.addView(nameAndHideLayout);
+        linearLayout.addView(formattingButtonsLayout); // Add formatting buttons layout
         linearLayout.addView(richEditor);
-        linearLayout.addView(buttonsLayout);
+        linearLayout.addView(actionButtonsLayout); // Add action buttons layout
 
         // Add main layout to the CardView
         cardView.addView(linearLayout);
-
+        // Set a tag for the cardView to identify it later
+        cardView.setTag(note.getId());
         // Add the CardView to your main container
         notesContainer.addView(cardView, 0);
     }
+    private LinearLayout createFormattingButtonsLayout(RichEditor richEditor) {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        layout.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
+        // Add formatting buttons
+        layout.addView(createFormatButton("Bold", richEditor));
+        layout.addView(createFormatButton("Italic", richEditor));
+        layout.addView(createFormatButton("Underline", richEditor));
+        layout.addView(createFormatButton("Bullets", richEditor));
+        layout.addView(createFormatButton("Strikethrough", richEditor));
+        layout.addView(createFormatButton("Indent", richEditor));
+        layout.addView(createFormatButton("Outdent", richEditor));
+        //layout.addView(createCheckboxButton(richEditor)); // Add the checkbox button
+
+        return layout;
+    }
+    private void injectCheckboxScript(RichEditor richEditor) {
+        String js = "function insertCheckbox() {" +
+                "  var editor = document.getElementById('editor');" +
+                "  var checkbox = document.createElement('input');" +
+                "  checkbox.type = 'checkbox';" +
+                "  checkbox.onclick = function() { this.checked = !this.checked; };" +
+                "  editor.appendChild(checkbox);" +
+                "}";
+        richEditor.evaluateJavascript(js, null);
+    }
+
+    private Button createCheckboxButton(RichEditor richEditor) {
+        Button checkboxButton = new Button(this);
+        checkboxButton.setText("Checkbox");
+        checkboxButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12); // Align font size with other buttons
+        checkboxButton.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, 90)); // Match size with other buttons
+        checkboxButton.setBackgroundColor(ContextCompat.getColor(this, R.color.light_blue));
+        checkboxButton.setTextColor(Color.BLACK);
+        checkboxButton.setTag(false); // Initial state is not pressed
+
+        // Add margin between buttons
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) checkboxButton.getLayoutParams();
+        params.setMargins(5, 0, 5, 0); // Align margins with other buttons
+        checkboxButton.setLayoutParams(params);
+
+        checkboxButton.setOnClickListener(view -> {
+            richEditor.evaluateJavascript("insertCheckbox();", null);
+            toggleButtonState(checkboxButton); // Add this to toggle the background color
+        });
+
+        return checkboxButton;
+    }
 
     private RichEditor createRichEditor(String content, int bgColor, String noteId) {
         RichEditor richEditor = new RichEditor(this);
@@ -420,6 +504,8 @@ public class UserNotes extends AppCompatActivity {
             }
         });
 
+        // Inject JavaScript for checkbox functionality
+        injectCheckboxScript(richEditor);
         return richEditor;
     }
     private void saveNoteContent(String noteId, String content, boolean refreshOnCompletion) {
@@ -438,34 +524,47 @@ public class UserNotes extends AppCompatActivity {
                 .addOnFailureListener(e -> Log.e("AutoSave", "Error auto-saving note", e));
     }
     private LinearLayout createButtonsLayout(String noteId, CardView cardView, RichEditor richEditor) {
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.HORIZONTAL);
-        layout.setLayoutParams(new LinearLayout.LayoutParams(
+        // Parent layout
+        LinearLayout parentLayout = new LinearLayout(this);
+        parentLayout.setOrientation(LinearLayout.VERTICAL);
+        parentLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        layout.setVisibility(View.GONE);
 
-        // Existing buttons
-        layout.addView(createButton("Save", R.color.dark_green, noteId, cardView, richEditor));
-        layout.addView(createButton("Delete", R.color.dark_red, noteId, cardView, richEditor));
-        layout.addView(createButton("Pick Color", R.color.dark_purple, noteId, cardView, richEditor));
+        // Layout for formatting buttons
+        LinearLayout formatLayout = new LinearLayout(this);
+        formatLayout.setOrientation(LinearLayout.HORIZONTAL);
+        formatLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         // Add formatting buttons
-        layout.addView(createFormatButton("Bold", richEditor));
-        layout.addView(createFormatButton("Italic", richEditor));
-        layout.addView(createFormatButton("Underline", richEditor));
-        layout.addView(createFormatButton("Bullets", richEditor));
+        formatLayout.addView(createFormatButton("Bold", richEditor));
+        formatLayout.addView(createFormatButton("Italic", richEditor));
+        formatLayout.addView(createFormatButton("Underline", richEditor));
+        formatLayout.addView(createFormatButton("Bullets", richEditor));
+        formatLayout.addView(createFormatButton("Strikethrough", richEditor));
+        formatLayout.addView(createFormatButton("Indent", richEditor));
+        formatLayout.addView(createFormatButton("Outdent", richEditor));
+        //formatLayout.addView(createCheckboxButton(richEditor)); // Add the checkbox button
 
-        return layout;
+        // Layout for action buttons
+        LinearLayout actionLayout = new LinearLayout(this);
+        actionLayout.setOrientation(LinearLayout.HORIZONTAL);
+        actionLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        // Add action buttons
+        actionLayout.addView(createButton("Save", R.color.dark_green, noteId, cardView, richEditor));
+        actionLayout.addView(createButton("Delete", R.color.dark_red, noteId, cardView, richEditor));
+        actionLayout.addView(createButton("Tag", R.color.dark_blue, noteId, cardView, richEditor));
+        actionLayout.addView(createButton("Pick Color", R.color.dark_purple, noteId, cardView, richEditor));
+
+        // Add both layouts to the parent layout
+        parentLayout.addView(formatLayout);
+        parentLayout.addView(actionLayout);
+
+        return parentLayout;
     }
 
-    private Button createFormatButton(String formatType, RichEditor richEditor) {
-        Button button = new Button(this);
-        button.setText(formatType);
-        button.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, 100));
-        button.setOnClickListener(view -> applyFormatting(formatType, richEditor));
-        return button;
-    }
 
     private void applyFormatting(String formatType, RichEditor richEditor) {
         switch (formatType) {
@@ -481,28 +580,203 @@ public class UserNotes extends AppCompatActivity {
             case "Bullets":
                 richEditor.setBullets();
                 break;
+            case "Strikethrough":
+                richEditor.setStrikeThrough();
+                break;
+            case "Indent":
+                richEditor.setIndent();
+                break;
+            case "Outdent":
+                richEditor.setOutdent();
+                break;
         }
     }
 
     private Button createButton(String text, int colorResId, String noteId, CardView cardView, RichEditor richEditor) {
-        Button button = new Button(this);
-        button.setText(text);
-        button.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, 100));
-        button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, colorResId)));
+        Context context = this;
+        Button button = new Button(new ContextThemeWrapper(context, R.style.CustomButtonStyle), null, 0);
+        String buttonText = text.substring(0, 1).toUpperCase() + text.substring(1).toLowerCase();
+        button.setText(buttonText);
+        Log.d("ButtonCreation", "Button Text: " + buttonText);
 
-        switch (text) {
+        // Adjust height here
+        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+                0, 80, 1f); // Adjust the height as needed
+        button.setLayoutParams(buttonParams);
+        button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, colorResId)));
+        button.setTextColor(Color.WHITE);
+
+        // Define button behavior based on its text
+        switch (buttonText) {
             case "Save":
                 button.setOnClickListener(view -> saveCurrentNote(noteId, richEditor.getHtml(), () -> refreshNotes()));
                 break;
             case "Delete":
                 button.setOnClickListener(view -> showDeleteConfirmationDialog(noteId));
                 break;
-            case "Pick Color":
+            case "Tag":
+                button.setOnClickListener(view -> showTagDialog(noteId));
+                break;
+            case "Pick Color": // Ensure this matches exactly with buttonText
                 button.setOnClickListener(view -> showColorPickerDialog(color -> updateNoteColor(noteId, String.format("#%06X", (0xFFFFFF & color)), cardView, () -> refreshNotes())));
                 break;
         }
+
         return button;
+    }
+
+    private Button createFormatButton(String formatType, RichEditor richEditor) {
+        Button button = new Button(this);
+        String buttonText = formatType.substring(0, 1).toUpperCase() + formatType.substring(1).toLowerCase();
+        button.setText(buttonText);
+
+        // Smaller text size
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+
+        // Apply bold text style
+        button.setTypeface(button.getTypeface(), Typeface.BOLD);
+
+        // Adjusting the button height
+        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+                0, 60, 1.0f);
+        buttonParams.setMargins(5, 0, 5, 0);
+        button.setLayoutParams(buttonParams);
+
+        button.setBackgroundColor(ContextCompat.getColor(this, R.color.light_blue));
+        button.setTextColor(Color.BLACK);
+
+        // Adjust internal padding
+        button.setPadding(2, 2, 2, 2);
+
+        button.setSingleLine(true);
+        button.setEllipsize(TextUtils.TruncateAt.END);
+
+        button.setOnClickListener(view -> {
+            applyFormatting(formatType, richEditor);
+            toggleButtonState(button);
+        });
+
+        return button;
+    }
+    private void showTagDialog(String noteId) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select or Add Tags");
+
+        // Layout for the dialog
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(16, 16, 16, 16);
+
+        final EditText input = new EditText(this);
+        input.setHint("Enter new tag");
+        layout.addView(input);
+
+        final ListView listView = new ListView(this);
+        layout.addView(listView);
+
+        // Initialize the adapter with an empty list
+        final ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<String>());
+        listView.setAdapter(adapter);
+
+        // Fetch existing tags and update the adapter
+        getExistingTags(noteId, tags -> {
+            adapter.clear();
+            adapter.addAll(tags);
+            adapter.notifyDataSetChanged();
+        });
+
+        // Set up the long press listener for item deletion
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            String tagToRemove = adapter.getItem(position);
+            // Show confirmation dialog before removing the tag
+            showRemoveTagConfirmationDialog(noteId, tagToRemove, adapter, position);
+            return true; // Return true to indicate the event is consumed
+        });
+
+        // Set up the buttons
+        builder.setPositiveButton("Add", (dialog, which) -> {
+            String newTag = input.getText().toString().trim();
+            if (!newTag.isEmpty()) {
+                addTagToNote(noteId, newTag);
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        builder.setView(layout);
+        builder.show();
+    }
+
+    private void showRemoveTagConfirmationDialog(String noteId, String tagToRemove, ArrayAdapter<String> adapter, int position) {
+        new AlertDialog.Builder(this)
+                .setTitle("Remove Tag")
+                .setMessage("Are you sure you want to remove this tag?")
+                .setPositiveButton("Remove", (dialog, which) -> {
+                    removeTagFromNote(noteId, tagToRemove, adapter, position);
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+    private void removeTagFromNote(String noteId, String tagToRemove, ArrayAdapter<String> adapter, int position) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("notes").document(noteId)
+                .update("tags", FieldValue.arrayRemove(tagToRemove))
+                .addOnSuccessListener(aVoid -> {
+                    // Remove the tag from the adapter and update the ListView
+                    adapter.remove(tagToRemove);
+                    adapter.notifyDataSetChanged();
+                    Toast.makeText(UserNotes.this, "Tag removed", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    // Handle the error
+                    Toast.makeText(UserNotes.this, "Error removing tag", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void addTagToNote(String noteId, String newTag) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("notes").document(noteId)
+                .update("tags", FieldValue.arrayUnion(newTag))
+                .addOnSuccessListener(aVoid -> Toast.makeText(UserNotes.this, "Tag added", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(UserNotes.this, "Error adding tag", Toast.LENGTH_SHORT).show());
+    }
+    public interface TagsCallback {
+        void onCallback(List<String> tags);
+    }
+    // Method to fetch existing tags
+
+    public void getExistingTags(String noteId, TagsCallback callback) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("notes").document(noteId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    Note note = documentSnapshot.toObject(Note.class);
+                    if (note != null && note.getTags() != null) {
+                        Log.d("TAG", "Tags fetched: " + note.getTags());
+                        callback.onCallback(note.getTags());
+                    } else {
+                        Log.d("TAG", "No tags found or note is null.");
+                        callback.onCallback(new ArrayList<>()); // Return empty list if no tags
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("TAG", "Error fetching tags for note", e);
+                });
+    }
+
+    private void toggleButtonState(Button button) {
+        Object tag = button.getTag();
+        boolean isPressed = tag != null && (boolean) tag;
+
+        if (isPressed) {
+            button.setBackgroundColor(ContextCompat.getColor(this, R.color.light_blue));
+            button.setTextColor(Color.BLACK); // Black text on light blue
+            button.setTag(false);
+        } else {
+            button.setBackgroundColor(ContextCompat.getColor(this, R.color.dark_blue));
+            button.setTextColor(Color.WHITE); // White text on dark blue
+            button.setTag(true);
+        }
     }
     private Drawable createCircleDrawable(int color, int diameterInPixels) {
         ShapeDrawable drawable = new ShapeDrawable(new OvalShape());
@@ -599,7 +873,8 @@ public class UserNotes extends AppCompatActivity {
     }
 
     // Modify the saveCurrentNote method
-    private void saveCurrentNote(String noteId, String updatedContent, Runnable onCompletion) {
+    // Modify the saveCurrentNote method to accept a Runnable for post-save actions
+    private void saveCurrentNote(String noteId, String updatedContent, Runnable postSaveAction) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         Map<String, Object> noteUpdates = new HashMap<>();
         noteUpdates.put("content", updatedContent);
@@ -609,9 +884,49 @@ public class UserNotes extends AppCompatActivity {
                 .update(noteUpdates)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(UserNotes.this, "Note saved successfully", Toast.LENGTH_SHORT).show();
-                    onCompletion.run(); // This will run the refreshNotes method
+                    postSaveAction.run(); // Execute the post-save action
                 })
                 .addOnFailureListener(e -> Toast.makeText(UserNotes.this, "Error saving note", Toast.LENGTH_SHORT).show());
+    }
+
+
+    private void updateNoteInView(String noteId, String updatedContent) {
+        for (int i = 0; i < notesContainer.getChildCount(); i++) {
+            View view = notesContainer.getChildAt(i);
+            if (view.getTag() != null && view.getTag().equals(noteId)) {
+                // Update the content of the note view
+                RichEditor editor = findRichEditorInView(view);
+                if (editor != null) {
+                    editor.setHtml(updatedContent);
+                }
+
+                // Move the note to the top
+                notesContainer.removeViewAt(i);
+                notesContainer.addView(view, 0);
+
+                // Make sure the note is visible
+                view.setVisibility(View.VISIBLE);
+                break;
+            }
+        }
+    }
+
+    private RichEditor findRichEditorInView(View view) {
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (child instanceof RichEditor) {
+                    return (RichEditor) child;
+                } else if (child instanceof ViewGroup) {
+                    RichEditor editor = findRichEditorInView(child);
+                    if (editor != null) {
+                        return editor;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private void addNewNote(String noteName, String color) {

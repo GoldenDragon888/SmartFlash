@@ -23,8 +23,10 @@
         android:title="Get Card Image" />
     <item
         android:id="@+id/nav_user_notes"
-        android:title="USer Notes" />
-
+        android:title="User Notes" />
+    <item
+        android:id="@+id/nav_calendar_notes"
+        android:title="Calendar Notes" />
     <!-- ... possibly other items ... -->
 
 </menu>
